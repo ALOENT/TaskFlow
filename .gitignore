@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Vite build output
+dist/
+
+# Capacitor native projects (generated)
+android/
+ios/
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
