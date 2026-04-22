@@ -11,12 +11,23 @@
 
 // Listen for messages from the main app
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+  // Validate sender
+  if (event.origin !== self.location.origin) return;
+
+  if (
+    event.data &&
+    event.data.type === 'SHOW_NOTIFICATION' &&
+    typeof event.data.title === 'string' &&
+    typeof event.data.body === 'string' &&
+    event.data.taskId
+  ) {
     self.registration.showNotification(event.data.title, {
       body: event.data.body,
       icon: '/favicon.ico',
       tag: `task-${event.data.taskId}`,
       data: { taskId: event.data.taskId }
+    }).catch(err => {
+      console.error(`Error showing notification for task ${event.data.taskId}:`, err);
     });
   }
 });
@@ -31,7 +42,12 @@ self.addEventListener('notificationclick', (event) => {
       .then((clientList) => {
         // If the app is already open in a tab, focus it
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+          let isSameOrigin = false;
+          try {
+            isSameOrigin = new URL(client.url).origin === self.location.origin;
+          } catch (e) {}
+
+          if (isSameOrigin && 'focus' in client) {
             return client.focus();
           }
         }
@@ -39,6 +55,9 @@ self.addEventListener('notificationclick', (event) => {
         if (clients.openWindow) {
           return clients.openWindow('/');
         }
+      })
+      .catch((err) => {
+        console.error('Error handling notification click:', err);
       })
   );
 });

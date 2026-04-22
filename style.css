@@ -36,6 +36,9 @@
 html{font-size:16px;scroll-behavior:smooth}
 body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-primary);line-height:1.6;min-height:100dvh;-webkit-font-smoothing:antialiased;padding-top:var(--safe-top)}
 
+/* UTILS */
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
 /* LOADING */
 .loading-overlay{position:fixed;inset:0;background:var(--color-bg);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s,visibility .4s}
 .loading-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
@@ -156,7 +159,9 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 /* Checkbox */
 .task-checkbox{appearance:none;-webkit-appearance:none;width:22px;height:22px;min-width:22px;border:2px solid #d1d5db;border-radius:var(--radius-full);cursor:pointer;transition:all var(--transition-fast);position:relative;background:transparent;margin-top:2px;flex-shrink:0}
 .task-checkbox:hover{border-color:var(--color-accent)}
+.task-checkbox:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.25);border-color:var(--color-accent)}
 .task-checkbox:checked{background:var(--color-success);border-color:var(--color-success)}
+.task-checkbox:checked:focus-visible{box-shadow:0 0 0 3px rgba(16,185,129,.25)}
 .task-checkbox:checked::after{content:'';position:absolute;top:3px;left:6px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 
 /* Task content */
@@ -169,7 +174,7 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 
 /* Task actions */
 .task-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity var(--transition-fast)}
-.task-item:hover .task-actions{opacity:1}
+.task-item:hover .task-actions, .task-item:focus-within .task-actions{opacity:1}
 .task-action-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:var(--radius-sm);color:var(--color-text-muted);transition:color var(--transition-fast),background var(--transition-fast);display:flex;align-items:center;justify-content:center;min-width:36px;min-height:36px}
 .task-edit-btn:hover{color:var(--color-accent);background:var(--color-accent-light)}
 .task-delete-btn:hover{color:var(--color-danger);background:var(--color-danger-bg)}
