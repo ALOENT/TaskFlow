@@ -1,17 +1,18 @@
 // ============================================
 //  TaskFlow — Firebase Configuration
+//  Migrated from CDN to npm imports for Vite bundling
 // ============================================
-import { initializeApp }                    from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js';
+import { initializeApp }               from 'firebase/app';
 import { getAuth, GoogleAuthProvider,
          signInWithPopup, signOut,
          onAuthStateChanged,
          createUserWithEmailAndPassword,
          signInWithEmailAndPassword,
-         updateProfile }                    from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-auth.js';
+         updateProfile }               from 'firebase/auth';
 import { getFirestore, collection, addDoc,
          deleteDoc, doc, updateDoc, query,
          orderBy, onSnapshot,
-         serverTimestamp }                  from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js';
+         serverTimestamp }             from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyClYYhtsn04OdidKPREmL1BFlBQvdodm_Y",
