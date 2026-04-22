@@ -82,6 +82,7 @@ let unsubscribeTasks = null;
 let isSignupMode = false;
 let activeCategory = 'all';
 let initialLoadDone = false;
+let overdueIntervalId = null;
 
 // ============================================
 //  UI HELPERS
@@ -198,6 +199,7 @@ authForm.addEventListener('submit', async (e) => {
 // ============================================
 signoutBtn.addEventListener('click', async () => {
   if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
+  if (overdueIntervalId) { clearInterval(overdueIntervalId); overdueIntervalId = null; }
   tasks = [];
   await signOut(auth);
 });
@@ -217,8 +219,13 @@ onAuthStateChanged(auth, (user) => {
     subscribeToTasks(user.uid);
     // Register service worker for web notifications
     registerServiceWorker();
+
+    if (!overdueIntervalId) {
+      overdueIntervalId = setInterval(() => { if (currentUser && tasks.length > 0) renderTasks(); }, 60000);
+    }
   } else {
     if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
+    if (overdueIntervalId) { clearInterval(overdueIntervalId); overdueIntervalId = null; }
     currentUser = null;
     tasks = [];
     initialLoadDone = false;
@@ -431,7 +438,13 @@ async function saveEdit(id, newText, newReminder, newCategory) {
 
   // Handle reminder time change
   const oldReminder = task.reminderTime || null;
-  const newReminderISO = newReminder ? new Date(newReminder).toISOString() : null;
+  let newReminderISO = null;
+  if (newReminder) {
+    const d = new Date(newReminder);
+    if (!isNaN(d.getTime())) {
+      newReminderISO = d.toISOString();
+    }
+  }
 
   if (newReminderISO !== oldReminder) {
     updates.reminderTime = newReminderISO;
@@ -673,5 +686,3 @@ taskInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addTask(); }
 });
 
-// Overdue check interval — re-render every minute to update badges
-setInterval(() => { if (currentUser && tasks.length > 0) renderTasks(); }, 60000);

@@ -4,9 +4,13 @@ node_modules/
 # Vite build output
 dist/
 
-# Capacitor native projects (generated)
-android/
-ios/
+# Capacitor native projects build/transient files
+android/build/
+android/.gradle/
+android/app/build/
+ios/App/Pods/
+ios/App/build/
+ios/App/DerivedData/
 
 # Environment files
 .env
