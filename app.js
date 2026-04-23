@@ -56,10 +56,22 @@ const authSubmitText    = $('auth-submit-text');
 const btnSpinner        = $('btn-spinner');
 const togglePassword    = $('toggle-password');
 const eyeIcon           = $('eye-icon');
-const userAvatar        = $('user-avatar');
-const userName          = $('user-name');
-const userEmail         = $('user-email');
-const signoutBtn        = $('signout-btn');
+
+// Updated User DOM Refs
+const sideUserAvatar    = $('side-user-avatar');
+const sideUserName      = $('side-user-name');
+const sideUserEmail     = $('side-user-email');
+const topUserAvatar     = $('top-user-avatar');
+const pageTitle         = $('page-title');
+
+// Sidebar Nav Refs
+const sideSignoutBtn    = $('side-signout-btn');
+const sidebarNav        = document.querySelector('.sidebar-nav');
+const sidebarCategories = $('sidebar-categories');
+
+// Top Bar Search
+const topSearchInput    = $('top-search-input');
+
 const themeToggleBtn    = $('theme-toggle-btn');
 const taskInput         = $('task-input');
 const taskNotesInput    = $('task-notes-input');
@@ -68,8 +80,6 @@ const addTaskBtn        = $('add-task-btn');
 const categorySelect    = $('category-select');
 const prioritySelect    = $('priority-select');
 const recurrenceSelect  = $('recurrence-select');
-const searchInput       = $('search-input');
-const searchClearBtn    = $('search-clear-btn');
 const reminderInput     = $('reminder-input');
 const activeTaskList    = $('active-task-list');
 const completedTaskList = $('completed-task-list');
@@ -78,14 +88,9 @@ const highCountEl       = $('high-count');
 const overdueCountEl    = $('overdue-count');
 const todayCountEl      = $('today-count');
 const completedPercentEl = $('completed-percentage');
-const progressCircle    = $('progress-circle');
-const activeSectionCount = $('active-section-count');
-const completedSectionCount = $('completed-section-count');
-const activeEmptyEl     = $('active-empty');
-const completedEmptyEl  = $('completed-empty');
-const categoryTabs      = $('category-tabs');
-const bottomNav         = $('bottom-nav');
+const progressBarInner  = $('progress-bar-inner');
 const skeletonLoader    = $('skeleton-loader');
+const bottomNav         = $('bottom-nav');
 
 // ============================================
 //  STATE
@@ -242,7 +247,7 @@ authForm.addEventListener('submit', async (e) => {
 // ============================================
 //  SIGN OUT
 // ============================================
-signoutBtn.addEventListener('click', async () => {
+sideSignoutBtn.addEventListener('click', async () => {
   if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
   if (overdueIntervalId) { clearInterval(overdueIntervalId); overdueIntervalId = null; }
   tasks = [];
@@ -292,13 +297,17 @@ function resetAuthForm() {
 function updateHeaderUI(user) {
   const displayName = user.displayName || user.email.split('@')[0];
   const email = user.email;
-  userName.textContent = displayName;
-  userEmail.textContent = email;
+  sideUserName.textContent = displayName;
+  sideUserEmail.textContent = email;
+  
+  const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  
   if (user.photoURL) {
-    userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer">`;
+    sideUserAvatar.innerHTML = `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`;
+    topUserAvatar.innerHTML = `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`;
   } else {
-    const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    userAvatar.textContent = initials;
+    sideUserAvatar.textContent = initials;
+    topUserAvatar.textContent = initials;
   }
 }
 
@@ -306,18 +315,45 @@ function updateHeaderUI(user) {
 //  CATEGORY TABS (Desktop + Bottom Nav Mobile)
 // ============================================
 function renderCategoryTabs() {
-  // Desktop tabs
-  if (categoryTabs) {
-    categoryTabs.innerHTML = CATEGORIES.map(c => `
-      <button class="cat-tab${c.id === activeCategory ? ' active' : ''}" data-cat="${c.id}">
-        <span class="cat-icon">${c.icon}</span>
-        <span class="cat-label">${c.label}</span>
-      </button>
-    `).join('');
-    categoryTabs.querySelectorAll('.cat-tab').forEach(btn => {
-      btn.addEventListener('click', () => switchCategory(btn.dataset.cat));
+  // Sidebar categories
+  if (sidebarCategories) {
+    sidebarCategories.innerHTML = CATEGORIES.filter(c => c.id !== 'all').map(c => {
+      const count = tasks.filter(t => !t.completed && t.category === c.id).length;
+      return `
+        <li class="nav-item${c.id === activeCategory ? ' active' : ''}" data-nav="${c.id}">
+          <span class="cat-icon">${c.icon}</span>
+          <span>${c.label}</span>
+          ${count > 0 ? `<span class="cat-badge">${count}</span>` : ''}
+        </li>
+      `;
+    }).join('');
+    
+    sidebarCategories.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => switchCategory(btn.dataset.nav));
     });
   }
+
+  // Update Primary Nav Counts (All, Today, etc)
+  const todayStr = new Date().toDateString();
+  const now = new Date();
+  
+  const allCount = tasks.filter(t => !t.completed).length;
+  const todayCount = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr).length;
+  const upcomingCount = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime) > now).length;
+  const completedCount = tasks.filter(t => t.completed).length;
+
+  const counts = { 'all': allCount, 'today': todayCount, 'upcoming': upcomingCount, 'completed': completedCount };
+
+  document.querySelectorAll('.sidebar-nav .nav-list:first-child .nav-item').forEach(item => {
+    const nav = item.dataset.nav;
+    const badge = item.querySelector('.cat-badge');
+    if (badge) {
+      const c = counts[nav];
+      badge.textContent = c;
+      badge.style.display = c > 0 ? 'block' : 'none';
+    }
+  });
+
   // Mobile bottom nav
   if (bottomNav) {
     bottomNav.innerHTML = CATEGORIES.map(c => `
@@ -334,9 +370,30 @@ function renderCategoryTabs() {
 
 function switchCategory(catId) {
   activeCategory = catId;
+  
+  // Update sidebar active states
+  document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.nav === catId);
+  });
+
+  // Update page title
+  const navItem = CATEGORIES.find(c => c.id === catId);
+  if (navItem) {
+    pageTitle.textContent = navItem.label + (catId === 'all' ? ' Tasks' : '');
+  } else {
+    // Check virtual categories
+    const virtuals = { 'today': 'Today', 'upcoming': 'Upcoming', 'completed': 'Completed' };
+    pageTitle.textContent = virtuals[catId] || 'Tasks';
+  }
+
   renderCategoryTabs();
   renderTasks();
 }
+
+// Sidebar Primary Nav Listeners
+document.querySelectorAll('.sidebar-nav .nav-list:first-child .nav-item').forEach(item => {
+  item.addEventListener('click', () => switchCategory(item.dataset.nav));
+});
 
 // Initialize category tabs
 renderCategoryTabs();
@@ -1085,8 +1142,21 @@ function toggleEditMode(task) {
 //  RENDER TASKS
 // ============================================
 function renderTasks() {
-  // Filter by active category
-  let filtered = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
+  const todayStr = new Date().toDateString();
+  const now = new Date();
+
+  // Filter by active category/view
+  let filtered = tasks;
+
+  if (activeCategory === 'today') {
+    filtered = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr);
+  } else if (activeCategory === 'upcoming') {
+    filtered = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime) > now);
+  } else if (activeCategory === 'completed') {
+    filtered = tasks.filter(t => t.completed);
+  } else if (activeCategory !== 'all') {
+    filtered = tasks.filter(t => t.category === activeCategory);
+  }
   
   // Filter by search query
   if (searchQuery) {
@@ -1109,9 +1179,15 @@ function renderTasks() {
     return oA - oB;
   });
 
-  const active = filtered.filter(t => !t.completed);
-  const completed = filtered.filter(t => t.completed);
-  const total = filtered.length;
+  // Decide what to show in sections
+  let active, completed;
+  if (activeCategory === 'completed') {
+    active = [];
+    completed = filtered;
+  } else {
+    active = filtered.filter(t => !t.completed);
+    completed = filtered.filter(t => t.completed);
+  }
 
   activeTaskList.innerHTML = '';
   completedTaskList.innerHTML = '';
@@ -1119,34 +1195,27 @@ function renderTasks() {
   active.forEach(t => activeTaskList.appendChild(createTaskElement(t)));
   completed.forEach(t => completedTaskList.appendChild(createTaskElement(t)));
 
-  activeEmptyEl.style.display = active.length === 0 ? 'flex' : 'none';
-  completedEmptyEl.style.display = completed.length === 0 ? 'flex' : 'none';
+  const activeEmptyEl = $('active-empty');
+  const completedEmptyEl = $('completed-empty');
+  if (activeEmptyEl) activeEmptyEl.style.display = active.length === 0 ? 'flex' : 'none';
+  if (completedEmptyEl) completedEmptyEl.style.display = completed.length === 0 ? 'flex' : 'none';
 
-  // Advanced Stats
+  // Stats
+  const totalTasks = tasks.length;
   const highTasks = tasks.filter(t => !t.completed && t.priority === 'high');
   const overdueTasks = tasks.filter(t => isOverdue(t));
-  const today = new Date().toDateString();
-  const todayTasks = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === today);
+  const todayTasks = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr);
+  const completedCount = tasks.filter(t => t.completed).length;
   
-  const pct = total > 0 ? Math.round((completed.length / total) * 100) : 0;
+  const pct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   
-  animateNumber(totalCountEl, parseInt(totalCountEl.textContent) || 0, total);
+  animateNumber(totalCountEl, parseInt(totalCountEl.textContent) || 0, totalTasks);
   animateNumber(highCountEl, parseInt(highCountEl.textContent) || 0, highTasks.length);
   animateNumber(overdueCountEl, parseInt(overdueCountEl.textContent) || 0, overdueTasks.length);
   animateNumber(todayCountEl, parseInt(todayCountEl.textContent) || 0, todayTasks.length);
   
   completedPercentEl.textContent = pct + '%';
-  activeSectionCount.textContent = active.length;
-  completedSectionCount.textContent = completed.length;
-
-  // Update Progress Ring
-  if (progressCircle) {
-    const radius = parseFloat(progressCircle.getAttribute('r'));
-    const circumference = 2 * Math.PI * radius;
-    progressCircle.style.strokeDasharray = circumference;
-    const offset = circumference - (pct / 100) * circumference;
-    progressCircle.style.strokeDashoffset = offset;
-  }
+  if (progressBarInner) progressBarInner.style.width = pct + '%';
 }
 
 function animateNumber(el, from, to) {
@@ -1170,18 +1239,9 @@ taskInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addTask(); }
 });
 
-if (searchInput) {
-  searchInput.addEventListener('input', (e) => {
+if (topSearchInput) {
+  topSearchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
-    searchClearBtn.style.display = searchQuery ? 'block' : 'none';
-    renderTasks();
-  });
-}
-if (searchClearBtn) {
-  searchClearBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    searchQuery = '';
-    searchClearBtn.style.display = 'none';
     renderTasks();
   });
 }
