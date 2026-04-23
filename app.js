@@ -8,7 +8,7 @@ import {
   auth, db, googleProvider,
   signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
-  collection, addDoc, deleteDoc, doc, updateDoc,
+  collection, addDoc, deleteDoc, doc, updateDoc, writeBatch,
   query, orderBy, onSnapshot, serverTimestamp
 } from './firebase-config.js';
 
@@ -59,10 +59,14 @@ const userAvatar        = $('user-avatar');
 const userName          = $('user-name');
 const userEmail         = $('user-email');
 const signoutBtn        = $('signout-btn');
+const themeToggleBtn    = $('theme-toggle-btn');
 const taskInput         = $('task-input');
+const taskNotesInput    = $('task-notes-input');
+const toggleNotesBtn    = $('toggle-notes-btn');
 const addTaskBtn        = $('add-task-btn');
 const categorySelect    = $('category-select');
 const prioritySelect    = $('priority-select');
+const recurrenceSelect  = $('recurrence-select');
 const searchInput       = $('search-input');
 const searchClearBtn    = $('search-clear-btn');
 const reminderInput     = $('reminder-input');
@@ -111,6 +115,32 @@ function clearAuthError()   { authError.style.display = 'none'; authError.textCo
 
 function showSkeleton() { if (skeletonLoader) skeletonLoader.style.display = ''; }
 function hideSkeleton() { if (skeletonLoader) skeletonLoader.style.display = 'none'; }
+
+// ============================================
+//  THEME TOGGLE
+// ============================================
+const savedTheme = localStorage.getItem('taskflow-theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+updateThemeIcon(savedTheme);
+
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('taskflow-theme', newTheme);
+    updateThemeIcon(newTheme);
+  });
+}
+
+function updateThemeIcon(theme) {
+  if (!themeToggleBtn) return;
+  if (theme === 'dark') {
+    themeToggleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+  } else {
+    themeToggleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  }
+}
 
 // ============================================
 //  AUTH MODE SWITCHING
@@ -394,6 +424,11 @@ async function addTask() {
     : null;
 
   taskInput.value = '';
+  if (taskNotesInput) {
+    taskNotesInput.value = '';
+    taskNotesInput.style.display = 'none';
+    if (toggleNotesBtn) toggleNotesBtn.style.display = 'block';
+  }
   if (mainReminderPicker) mainReminderPicker.clear();
   taskInput.focus();
 
@@ -401,12 +436,15 @@ async function addTask() {
     // Prepare task data
     const taskData = {
       text,
+      notes: taskNotesInput && taskNotesInput.style.display !== 'none' ? taskNotesInput.value.trim() : '',
       category,
       priority: prioritySelect ? prioritySelect.value : 'medium',
       subtasks: [],
       completed: false,
+      recurrence: recurrenceSelect ? recurrenceSelect.value : 'none',
       reminderTime,
       notificationId: null,
+      order: Date.now(),
       createdAt: serverTimestamp()
     };
 
@@ -440,6 +478,11 @@ async function toggleTask(id) {
   try {
     const newCompleted = !task.completed;
     await updateDoc(taskDoc, { completed: newCompleted });
+
+    // Handle Recurring Task
+    if (newCompleted && task.recurrence && task.recurrence !== 'none') {
+      await handleRecurrence(task);
+    }
 
     // Cancel notification when completing
     if (newCompleted && task.notificationId != null) {
@@ -479,7 +522,7 @@ async function deleteTask(id) {
 // ============================================
 //  INLINE EDIT — save changes
 // ============================================
-async function saveEdit(id, newText, newReminder, newCategory, newPriority) {
+async function saveEdit(id, newText, newNotes, newReminder, newCategory, newPriority, newRecurrence) {
   if (!currentUser) return;
   const task = tasks.find(t => t.id === id);
   if (!task) return;
@@ -488,6 +531,8 @@ async function saveEdit(id, newText, newReminder, newCategory, newPriority) {
   const updates = {};
 
   if (newText !== undefined && newText !== task.text) updates.text = newText;
+  if (newNotes !== undefined && newNotes !== (task.notes || '')) updates.notes = newNotes;
+  if (newRecurrence !== undefined && newRecurrence !== task.recurrence) updates.recurrence = newRecurrence;
   if (newCategory !== undefined && newCategory !== task.category) updates.category = newCategory;
   if (newPriority !== undefined && newPriority !== task.priority) updates.priority = newPriority;
 
@@ -579,6 +624,50 @@ async function deleteSubtask(taskId, subtaskId) {
 }
 
 // ============================================
+//  RECURRING TASKS HELPER
+// ============================================
+async function handleRecurrence(task) {
+  if (!currentUser) return;
+  const nextDate = new Date();
+  
+  if (task.recurrence === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+  else if (task.recurrence === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+  else if (task.recurrence === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+  else return;
+
+  let nextReminder = null;
+  if (task.reminderTime) {
+    const originalReminder = new Date(task.reminderTime);
+    nextReminder = new Date(nextDate);
+    nextReminder.setHours(originalReminder.getHours(), originalReminder.getMinutes(), 0, 0);
+  }
+
+  const taskData = {
+    text: task.text,
+    notes: task.notes || '',
+    category: task.category,
+    priority: task.priority || 'medium',
+    recurrence: task.recurrence,
+    subtasks: (task.subtasks || []).map(s => ({ ...s, completed: false })),
+    completed: false,
+    reminderTime: nextReminder ? nextReminder.toISOString() : null,
+    notificationId: null,
+    order: Date.now(),
+    createdAt: serverTimestamp()
+  };
+
+  const tasksRef = collection(db, 'users', currentUser.uid, 'tasks');
+  const docRef = await addDoc(tasksRef, taskData);
+
+  if (nextReminder) {
+    const notifId = await scheduleTaskReminder({ id: docRef.id, title: task.text, reminderTime: nextReminder.toISOString() });
+    if (notifId != null) {
+      await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
+    }
+  }
+}
+
+// ============================================
 //  TASK RENDERING
 // ============================================
 function isOverdue(task) {
@@ -615,6 +704,13 @@ function createTaskElement(task) {
   text.textContent = task.text;
   content.appendChild(text);
 
+  if (task.notes) {
+    const notesDisplay = document.createElement('div');
+    notesDisplay.className = 'task-notes-display visible';
+    notesDisplay.textContent = task.notes;
+    content.appendChild(notesDisplay);
+  }
+
   // Meta row (category + reminder)
   const meta = document.createElement('div');
   meta.className = 'task-meta';
@@ -631,6 +727,13 @@ function createTaskElement(task) {
   priorityBadge.className = `task-category-badge priority-${priority}`;
   priorityBadge.textContent = `${priorityIcons[priority]} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`;
   meta.appendChild(priorityBadge);
+
+  if (task.recurrence && task.recurrence !== 'none') {
+    const recBadge = document.createElement('span');
+    recBadge.className = 'task-category-badge';
+    recBadge.innerHTML = `🔁 ${task.recurrence}`;
+    meta.appendChild(recBadge);
+  }
 
   if (task.reminderTime) {
     const reminderBadge = document.createElement('span');
@@ -732,7 +835,98 @@ function createTaskElement(task) {
   subtasksContainer.append(subtasksList, addSubDiv);
 
   item.append(checkbox, content, actions, subtasksContainer);
+
+  // Drag and Drop
+  item.draggable = true;
+  item.addEventListener('dragstart', handleDragStart);
+  item.addEventListener('dragover', handleDragOver);
+  item.addEventListener('drop', handleDrop);
+  item.addEventListener('dragenter', handleDragEnter);
+  item.addEventListener('dragleave', handleDragLeave);
+  item.addEventListener('dragend', handleDragEnd);
+
   return item;
+}
+
+// ============================================
+//  DRAG AND DROP HANDLERS
+// ============================================
+let draggedTaskId = null;
+
+function handleDragStart(e) {
+  draggedTaskId = this.dataset.id;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', draggedTaskId);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  return false;
+}
+
+function handleDragEnter(e) {
+  this.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.stopPropagation();
+  this.classList.remove('drag-over');
+  const targetTaskId = this.dataset.id;
+  if (draggedTaskId && draggedTaskId !== targetTaskId) {
+    reorderTasks(draggedTaskId, targetTaskId);
+  }
+  return false;
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
+  draggedTaskId = null;
+}
+
+async function reorderTasks(draggedId, targetId) {
+  if (!currentUser) return;
+  const listEls = Array.from(activeTaskList.children);
+  const draggedEl = activeTaskList.querySelector(`[data-id="${draggedId}"]`);
+  const targetEl = activeTaskList.querySelector(`[data-id="${targetId}"]`);
+  
+  if (!draggedEl || !targetEl) return;
+
+  const draggedIndex = listEls.indexOf(draggedEl);
+  const targetIndex = listEls.indexOf(targetEl);
+
+  if (draggedIndex < targetIndex) {
+    targetEl.after(draggedEl);
+  } else {
+    targetEl.before(draggedEl);
+  }
+
+  const newOrderNodes = Array.from(activeTaskList.children);
+  const batch = writeBatch(db);
+  const now = Date.now();
+  
+  newOrderNodes.forEach((node, index) => {
+    const id = node.dataset.id;
+    const taskRef = doc(db, 'users', currentUser.uid, 'tasks', id);
+    // Use timestamp-based order to maintain stable sorting
+    const newOrder = now + index; 
+    batch.update(taskRef, { order: newOrder });
+    const t = tasks.find(t => t.id === id);
+    if (t) t.order = newOrder;
+  });
+
+  try {
+    await batch.commit();
+  } catch (err) {
+    console.error('Reorder failed:', err);
+    renderTasks();
+  }
 }
 
 // ============================================
@@ -761,6 +955,31 @@ function toggleEditMode(task) {
   titleInput.className = 'edit-title-input';
   titleInput.value = task.text;
   titleInput.maxLength = 120;
+
+  // Notes input
+  const notesInput = document.createElement('textarea');
+  notesInput.className = 'task-notes-input';
+  notesInput.style.marginTop = '0';
+  notesInput.rows = 2;
+  notesInput.value = task.notes || '';
+  notesInput.placeholder = 'Add notes (optional)...';
+
+  // Recurrence select
+  const recSelect = document.createElement('select');
+  recSelect.className = 'edit-category-select';
+  const recOptions = [
+    { value: 'none', label: '🔁 None' },
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' }
+  ];
+  recOptions.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.value;
+    opt.textContent = r.label;
+    if (r.value === (task.recurrence || 'none')) opt.selected = true;
+    recSelect.appendChild(opt);
+  });
 
   // Priority select
   const priSelect = document.createElement('select');
@@ -810,10 +1029,8 @@ function toggleEditMode(task) {
   saveBtn.className = 'edit-save-btn';
   saveBtn.textContent = 'Save';
   saveBtn.addEventListener('click', async () => {
-    const newText = titleInput.value.trim();
-    if (!newText) return;
     const newRem = editPicker.selectedDates.length > 0 ? editPicker.selectedDates[0].toISOString() : null;
-    await saveEdit(task.id, newText, newRem, catSelect.value, priSelect.value);
+    await saveEdit(task.id, titleInput.value.trim(), notesInput.value.trim(), newRem, catSelect.value, priSelect.value, recSelect.value);
   });
 
   const cancelBtn = document.createElement('button');
@@ -828,7 +1045,7 @@ function toggleEditMode(task) {
 
   btnRow.append(saveBtn, cancelBtn);
 
-  editForm.append(titleInput, priSelect, catSelect, remInput, clearRemBtn, btnRow);
+  editForm.append(titleInput, notesInput, priSelect, recSelect, catSelect, remInput, clearRemBtn, btnRow);
   content.replaceWith(editForm);
 
   titleInput.focus();
@@ -860,9 +1077,10 @@ function renderTasks() {
     const pA = priorityWeight[a.priority || 'medium'];
     const pB = priorityWeight[b.priority || 'medium'];
     if (pA !== pB) return pB - pA;
-    const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-    const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-    return tB - tA;
+    
+    const oA = a.order || (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0);
+    const oB = b.order || (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0);
+    return oA - oB;
   });
 
   const active = filtered.filter(t => !t.completed);
@@ -920,6 +1138,14 @@ if (searchClearBtn) {
     searchQuery = '';
     searchClearBtn.style.display = 'none';
     renderTasks();
+  });
+}
+
+if (toggleNotesBtn) {
+  toggleNotesBtn.addEventListener('click', () => {
+    toggleNotesBtn.style.display = 'none';
+    taskNotesInput.style.display = 'block';
+    taskNotesInput.focus();
   });
 }
 
