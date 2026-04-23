@@ -19,6 +19,7 @@ import {
 
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
+import { sanitize } from './sanitize.js';
 
 // ============================================
 //  CATEGORIES
@@ -73,8 +74,11 @@ const reminderInput     = $('reminder-input');
 const activeTaskList    = $('active-task-list');
 const completedTaskList = $('completed-task-list');
 const totalCountEl      = $('total-count');
-const activeCountEl     = $('active-count');
+const highCountEl       = $('high-count');
+const overdueCountEl    = $('overdue-count');
+const todayCountEl      = $('today-count');
 const completedPercentEl = $('completed-percentage');
+const progressCircle    = $('progress-circle');
 const activeSectionCount = $('active-section-count');
 const completedSectionCount = $('completed-section-count');
 const activeEmptyEl     = $('active-empty');
@@ -435,8 +439,8 @@ async function addTask() {
   try {
     // Prepare task data
     const taskData = {
-      text,
-      notes: taskNotesInput && taskNotesInput.style.display !== 'none' ? taskNotesInput.value.trim() : '',
+      text: sanitize(text),
+      notes: taskNotesInput && taskNotesInput.style.display !== 'none' ? sanitize(taskNotesInput.value.trim()) : '',
       category,
       priority: prioritySelect ? prioritySelect.value : 'medium',
       subtasks: [],
@@ -530,8 +534,8 @@ async function saveEdit(id, newText, newNotes, newReminder, newCategory, newPrio
   const taskDoc = doc(db, 'users', currentUser.uid, 'tasks', id);
   const updates = {};
 
-  if (newText !== undefined && newText !== task.text) updates.text = newText;
-  if (newNotes !== undefined && newNotes !== (task.notes || '')) updates.notes = newNotes;
+  if (newText !== undefined && newText !== task.text) updates.text = sanitize(newText);
+  if (newNotes !== undefined && newNotes !== (task.notes || '')) updates.notes = sanitize(newNotes);
   if (newRecurrence !== undefined && newRecurrence !== task.recurrence) updates.recurrence = newRecurrence;
   if (newCategory !== undefined && newCategory !== task.category) updates.category = newCategory;
   if (newPriority !== undefined && newPriority !== task.priority) updates.priority = newPriority;
@@ -584,7 +588,7 @@ async function addSubtask(taskId, text) {
   if (!task) return;
   
   const subtasks = task.subtasks || [];
-  const newSubtask = { id: Date.now().toString(), text, completed: false };
+  const newSubtask = { id: Date.now().toString(), text: sanitize(text), completed: false };
   const updatedSubtasks = [...subtasks, newSubtask];
   
   await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', taskId), { subtasks: updatedSubtasks });
@@ -1096,12 +1100,30 @@ function renderTasks() {
   activeEmptyEl.style.display = active.length === 0 ? 'flex' : 'none';
   completedEmptyEl.style.display = completed.length === 0 ? 'flex' : 'none';
 
+  // Advanced Stats
+  const highTasks = tasks.filter(t => !t.completed && t.priority === 'high');
+  const overdueTasks = tasks.filter(t => isOverdue(t));
+  const today = new Date().toDateString();
+  const todayTasks = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === today);
+  
   const pct = total > 0 ? Math.round((completed.length / total) * 100) : 0;
+  
   animateNumber(totalCountEl, parseInt(totalCountEl.textContent) || 0, total);
-  animateNumber(activeCountEl, parseInt(activeCountEl.textContent) || 0, active.length);
+  animateNumber(highCountEl, parseInt(highCountEl.textContent) || 0, highTasks.length);
+  animateNumber(overdueCountEl, parseInt(overdueCountEl.textContent) || 0, overdueTasks.length);
+  animateNumber(todayCountEl, parseInt(todayCountEl.textContent) || 0, todayTasks.length);
+  
   completedPercentEl.textContent = pct + '%';
   activeSectionCount.textContent = active.length;
   completedSectionCount.textContent = completed.length;
+
+  // Update Progress Ring
+  if (progressCircle) {
+    const radius = progressCircle.r.baseVal.value;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (pct / 100) * circumference;
+    progressCircle.style.strokeDashoffset = offset;
+  }
 }
 
 function animateNumber(el, from, to) {

@@ -144,15 +144,22 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .cat-icon{font-size:1.1rem}
 
 /* DASHBOARD */
-.dashboard{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 0}
-.stat-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:22px 16px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform var(--transition-smooth),box-shadow var(--transition-smooth);cursor:default}
-.stat-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:18px;display:flex;flex-direction:column;gap:8px;transition:transform var(--transition-fast),box-shadow var(--transition-fast)}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .stat-icon{width:38px;height:38px;border-radius:var(--radius-full);display:flex;align-items:center;justify-content:center;margin-bottom:4px}
 .stat-icon-total{background:var(--color-accent-light);color:var(--color-accent)}
-.stat-icon-active{background:#f3f4f6;color:#6b7280}
-.stat-icon-completed{background:var(--color-accent-light);color:var(--color-accent)}
-.stat-number{font-size:1.75rem;font-weight:700;line-height:1}
-.stat-label{font-size:.8rem;color:var(--color-text-secondary);font-weight:500}
+.stat-icon-high{background:#fee2e2;color:#ef4444}
+.stat-icon-overdue{background:#fef3c7;color:#d97706}
+.stat-icon-today{background:#dcfce7;color:#22c55e}
+.stat-number{font-size:1.5rem;font-weight:700;line-height:1.2}
+.stat-label{font-size:.75rem;color:var(--color-text-secondary);font-weight:600;text-transform:uppercase;letter-spacing:0.02em}
+
+.progress-ring-card{flex-direction:row!important;align-items:center!important;gap:15px!important}
+.progress-ring-container{position:relative;display:flex;align-items:center;justify-content:center;width:60px;height:60px}
+.progress-ring{transform:rotate(-90deg)}
+.progress-percent{position:absolute;font-size:0.85rem;font-weight:800;color:var(--color-accent)}
+.progress-ring-circle{transition:stroke-dashoffset 0.6s ease;stroke-dasharray:150.79}
 
 /* ADD TASK */
 .add-task-section{padding:6px 0 22px}
