@@ -118,19 +118,19 @@
 
         <nav class="sidebar-nav">
           <ul class="nav-list">
-            <li class="nav-item active" data-nav="all">
+            <li class="nav-item active" data-nav="all" tabindex="0" role="button">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               <span>All Tasks</span>
             </li>
-            <li class="nav-item" data-nav="today">
+            <li class="nav-item" data-nav="today" tabindex="0" role="button">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
               <span>Today</span>
             </li>
-            <li class="nav-item" data-nav="upcoming">
+            <li class="nav-item" data-nav="upcoming" tabindex="0" role="button">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               <span>Upcoming</span>
             </li>
-            <li class="nav-item" data-nav="completed">
+            <li class="nav-item" data-nav="completed" tabindex="0" role="button">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               <span>Completed</span>
             </li>
@@ -195,7 +195,7 @@
           <div class="top-bar-center">
             <div class="search-box">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="top-search-input" placeholder="Search tasks..." autocomplete="off">
+              <input type="text" id="top-search-input" placeholder="Search tasks..." autocomplete="off" aria-label="Search tasks">
             </div>
           </div>
 
@@ -292,14 +292,14 @@
         <div class="add-task-floating">
           <div class="add-task-container">
             <div class="input-row">
-              <input type="text" id="task-input" placeholder="Add a new task…" maxlength="120" autocomplete="off">
+              <input type="text" id="task-input" placeholder="Add a new task…" maxlength="120" autocomplete="off" aria-label="New task title">
               <div class="input-actions">
-                <select id="priority-select" title="Priority">
+                <select id="priority-select" title="Priority" aria-label="Task priority">
                   <option value="high">🔴 High</option>
                   <option value="medium" selected>🟠 Medium</option>
                   <option value="low">🟢 Low</option>
                 </select>
-                <select id="category-select">
+                <select id="category-select" aria-label="Task category">
                   <option value="work">💼 Work</option>
                   <option value="personal">🏠 Personal</option>
                   <option value="shopping">🛒 Shopping</option>
@@ -310,16 +310,16 @@
               </div>
             </div>
             <div class="input-details">
-              <input type="text" id="reminder-input" placeholder="Set reminder...">
-              <select id="recurrence-select">
+              <input type="text" id="reminder-input" placeholder="Set reminder..." aria-label="Task reminder">
+              <select id="recurrence-select" aria-label="Task recurrence">
                 <option value="none" selected>No Repeat</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
               </select>
-              <button id="toggle-notes-btn" class="text-btn">📝 Add Note</button>
+              <button id="toggle-notes-btn" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
             </div>
-            <textarea id="task-notes-input" placeholder="Add notes (optional)..." rows="2" style="display:none;"></textarea>
+            <textarea id="task-notes-input" placeholder="Add notes (optional)..." rows="2" style="display:none;" aria-label="Task notes"></textarea>
           </div>
         </div>
 
@@ -335,11 +335,12 @@
           <div class="sheet-content">
             <h3 class="sheet-title">New Task</h3>
             <div class="sheet-form">
+              <label for="sheet-task-input" class="visually-hidden">Task title</label>
               <input type="text" id="sheet-task-input" placeholder="What needs to be done?" maxlength="120">
               
               <div class="sheet-row">
                 <div class="sheet-col">
-                  <label>Priority</label>
+                  <label for="sheet-priority-select">Priority</label>
                   <select id="sheet-priority-select">
                     <option value="high">🔴 High</option>
                     <option value="medium" selected>🟠 Medium</option>
@@ -347,7 +348,7 @@
                   </select>
                 </div>
                 <div class="sheet-col">
-                  <label>Category</label>
+                  <label for="sheet-category-select">Category</label>
                   <select id="sheet-category-select">
                     <option value="work">💼 Work</option>
                     <option value="personal">🏠 Personal</option>
@@ -360,11 +361,11 @@
 
               <div class="sheet-row">
                 <div class="sheet-col">
-                  <label>Reminder</label>
+                  <label for="sheet-reminder-input">Reminder</label>
                   <input type="text" id="sheet-reminder-input" placeholder="Set time...">
                 </div>
                 <div class="sheet-col">
-                  <label>Recurrence</label>
+                  <label for="sheet-recurrence-select">Recurrence</label>
                   <select id="sheet-recurrence-select">
                     <option value="none" selected>No Repeat</option>
                     <option value="daily">Daily</option>
@@ -375,7 +376,8 @@
               </div>
 
               <div class="sheet-notes-section">
-                <button id="sheet-toggle-notes" class="text-btn">📝 Add Note</button>
+                <button id="sheet-toggle-notes" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
+                <label for="sheet-notes-input" class="visually-hidden">Notes</label>
                 <textarea id="sheet-notes-input" placeholder="Add more details..." rows="3" style="display:none;"></textarea>
               </div>
 

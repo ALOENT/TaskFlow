@@ -321,8 +321,8 @@ function resetAuthForm() {
 //  HEADER USER INFO
 // ============================================
 function updateHeaderUI(user) {
-  const displayName = user.displayName || user.email.split('@')[0];
-  const email = user.email;
+  const email = user.email || '';
+  const displayName = user.displayName || (email ? email.split('@')[0] : 'User');
   const firstName = displayName.split(' ')[0];
   
   sideUserName.textContent = displayName;
@@ -423,8 +423,9 @@ function renderCategoryTabs() {
         if (btn.dataset.nav === 'stats') {
           const statsGrid = $('stats-grid');
           if (statsGrid) statsGrid.scrollIntoView({ behavior: 'smooth' });
-          activeCategory = 'stats'; // Temporary state for active style
-          renderCategoryTabs();
+          // Highlight stats tab visually without corrupting filter state
+          bottomNav.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
         } else {
           switchCategory(btn.dataset.nav);
         }
@@ -442,13 +443,14 @@ function switchCategory(catId) {
   });
 
   // Update page title
-  const navItem = CATEGORIES.find(c => c.id === catId);
-  if (navItem) {
-    pageTitle.textContent = navItem.label + (catId === 'all' ? ' Tasks' : '');
-  } else {
-    // Check virtual categories
-    const virtuals = { 'today': 'Today', 'upcoming': 'Upcoming', 'completed': 'Completed' };
-    pageTitle.textContent = virtuals[catId] || 'Tasks';
+  if (pageTitle) {
+    const navItem = CATEGORIES.find(c => c.id === catId);
+    if (navItem) {
+      pageTitle.textContent = navItem.label + (catId === 'all' ? ' Tasks' : '');
+    } else {
+      const virtuals = { 'today': 'Today', 'upcoming': 'Upcoming', 'completed': 'Completed' };
+      pageTitle.textContent = virtuals[catId] || 'Tasks';
+    }
   }
 
   renderCategoryTabs();
@@ -458,6 +460,12 @@ function switchCategory(catId) {
 // Sidebar Primary Nav Listeners
 document.querySelectorAll('.sidebar-nav .nav-list:first-child .nav-item').forEach(item => {
   item.addEventListener('click', () => switchCategory(item.dataset.nav));
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      switchCategory(item.dataset.nav);
+    }
+  });
 });
 
 // Initialize category tabs
@@ -850,7 +858,7 @@ function createTaskElement(task) {
       </div>
       <div class="task-meta-mobile">
         <span class="mobile-tag">${cat.icon} ${cat.label}</span>
-        ${task.reminder ? `<span class="mobile-tag ${isOverdueTask ? 'overdue' : ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> ${formatDate(task.reminder)}</span>` : ''}
+        ${task.reminderTime ? `<span class="mobile-tag ${isOverdueTask ? 'overdue' : ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> ${formatReminderTime(task.reminderTime)}</span>` : ''}
         ${subtasksCount > 0 ? `<span class="subtask-pill">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
       </div>
       <div class="task-icons-row">

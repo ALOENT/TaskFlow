@@ -2,7 +2,7 @@
    TaskFlow — Full Design System
    ============================================ */
 :root {
-  --color-bg: #f8f9fa; /* Slightly off-white */
+  --color-bg: #f8f9fa;
   --color-surface: #ffffff;
   --color-sidebar: #f8f9fa;
   --color-border: #eef0f2;
@@ -15,12 +15,23 @@
   --color-success: #10b981;
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
+  --color-danger-bg: #fff1f2;
+  --color-warning-bg: #fffbeb;
+  --color-success-light: #ecfdf5;
   --shadow-subtle: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-full: 9999px;
   --sidebar-width: 260px;
   --font: 'Inter', -apple-system, sans-serif;
+  --transition-fast: 0.15s ease;
+  --transition-theme: 0.3s ease;
+  --safe-top: env(safe-area-inset-top);
+  --safe-bottom: env(safe-area-inset-bottom);
 }
 
 [data-theme="dark"] {
@@ -32,8 +43,26 @@
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
   --color-accent: #3b82f6;
+  --color-danger-bg: #2d1215;
+  --color-warning-bg: #2d2505;
+  --color-success-light: #0d2818;
   --shadow-subtle: 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.4);
   color-scheme: dark;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -104,7 +133,7 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 /* APP LAYOUT */
 .app-container {
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
 }
@@ -335,7 +364,7 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 
 .logout-btn:hover {
   color: var(--color-danger);
-  background: #fff1f2;
+  background: var(--color-danger-bg);
 }
 
 /* MOBILE TOP BAR */
@@ -1188,11 +1217,7 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
   }
 }
 
-/* ANIMATIONS */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+/* Note: slideIn is defined earlier in the file — this duplicate is removed */
 
 .task-item {
   animation: slideIn 0.3s ease-out;
