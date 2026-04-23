@@ -203,6 +203,13 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .bottom-nav-icon{font-size:1.25rem}
 .bottom-nav-label{font-size:.65rem;font-weight:600}
 
+/* FLATPICKR CUSTOM ACTIONS */
+.flatpickr-actions { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--color-border); justify-content: flex-end; background: var(--color-surface); border-radius: 0 0 5px 5px; }
+.flatpickr-cancel-btn { padding: 8px 16px; font-size: .85rem; font-weight: 600; font-family: var(--font); color: var(--color-text-secondary); background: var(--color-bg); border: 1.5px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; transition: background var(--transition-fast); }
+.flatpickr-cancel-btn:hover { background: var(--color-surface); }
+.flatpickr-confirm-btn { padding: 8px 16px; font-size: .85rem; font-weight: 600; font-family: var(--font); color: #fff; background: var(--color-accent); border: none; border-radius: var(--radius-sm); cursor: pointer; transition: background var(--transition-fast); }
+.flatpickr-confirm-btn:hover { background: var(--color-accent-hover); }
+
 /* ANIMATIONS */
 @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeOut{from{opacity:1;transform:translateX(0) scale(1)}to{opacity:0;transform:translateX(24px) scale(.98)}}
@@ -227,6 +234,38 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
   .task-actions{opacity:1}
   .footer{padding-bottom:8px}
   .signout-btn span{display:none}
+
+  /* Flatpickr Mobile Bottom Sheet */
+  .flatpickr-calendar {
+    position: fixed !important;
+    bottom: 0 !important;
+    top: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.5) !important;
+    animation: slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 99999 !important;
+    transform: none !important;
+  }
+  @keyframes slideUpSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  
+  /* Mobile backdrop for the bottom sheet */
+  body::after {
+    content: '';
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 99998;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  body:has(.flatpickr-calendar.open)::after {
+    display: block;
+  }
 }
 
 /* Desktop */
