@@ -400,6 +400,7 @@ async function addTask() {
       text,
       category,
       priority: prioritySelect ? prioritySelect.value : 'medium',
+      subtasks: [],
       completed: false,
       reminderTime,
       notificationId: null,
@@ -527,6 +528,54 @@ async function saveEdit(id, newText, newReminder, newCategory, newPriority) {
 }
 
 // ============================================
+//  SUBTASKS
+// ============================================
+async function addSubtask(taskId, text) {
+  if (!currentUser) return;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  const subtasks = task.subtasks || [];
+  const newSubtask = { id: Date.now().toString(), text, completed: false };
+  const updatedSubtasks = [...subtasks, newSubtask];
+  
+  await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', taskId), { subtasks: updatedSubtasks });
+}
+
+async function toggleSubtask(taskId, subtaskId) {
+  if (!currentUser) return;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  const subtasks = task.subtasks || [];
+  const updatedSubtasks = subtasks.map(s => s.id === subtaskId ? { ...s, completed: !s.completed } : s);
+  
+  const updates = { subtasks: updatedSubtasks };
+  
+  const allCompleted = updatedSubtasks.length > 0 && updatedSubtasks.every(s => s.completed);
+  if (allCompleted && !task.completed) {
+    updates.completed = true;
+    if (task.notificationId != null) {
+      await cancelTaskReminder(task.notificationId, task.id);
+      updates.notificationId = null;
+    }
+  }
+  
+  await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', taskId), updates);
+}
+
+async function deleteSubtask(taskId, subtaskId) {
+  if (!currentUser) return;
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  const subtasks = task.subtasks || [];
+  const updatedSubtasks = subtasks.filter(s => s.id !== subtaskId);
+  
+  await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', taskId), { subtasks: updatedSubtasks });
+}
+
+// ============================================
 //  TASK RENDERING
 // ============================================
 function isOverdue(task) {
@@ -587,6 +636,15 @@ function createTaskElement(task) {
     meta.appendChild(reminderBadge);
   }
 
+  if (task.subtasks && task.subtasks.length > 0) {
+    const total = task.subtasks.length;
+    const completed = task.subtasks.filter(s => s.completed).length;
+    const progressBadge = document.createElement('span');
+    progressBadge.className = 'task-category-badge subtask-badge';
+    progressBadge.textContent = `📋 ${completed}/${total}`;
+    meta.appendChild(progressBadge);
+  }
+
   content.appendChild(meta);
 
   // Action buttons
@@ -609,8 +667,68 @@ function createTaskElement(task) {
   deleteBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
   deleteBtn.addEventListener('click', () => deleteTask(task.id));
 
-  actions.append(editBtn, deleteBtn);
-  item.append(checkbox, content, actions);
+  // Subtasks toggle button
+  const subtasksBtn = document.createElement('button');
+  subtasksBtn.className = 'task-action-btn subtasks-btn';
+  subtasksBtn.setAttribute('aria-label', 'Toggle Subtasks');
+  subtasksBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+  subtasksBtn.addEventListener('click', () => {
+    const container = item.querySelector('.subtasks-container');
+    if (container) {
+      container.style.display = container.style.display === 'none' ? 'block' : 'none';
+      subtasksBtn.querySelector('polyline').setAttribute('points', container.style.display === 'none' ? "6 9 12 15 18 9" : "18 15 12 9 6 15");
+    }
+  });
+
+  actions.append(subtasksBtn, editBtn, deleteBtn);
+  
+  // Subtasks container
+  const subtasksContainer = document.createElement('div');
+  subtasksContainer.className = 'subtasks-container';
+  subtasksContainer.style.display = 'none';
+
+  const subtasksList = document.createElement('div');
+  subtasksList.className = 'subtasks-list';
+  (task.subtasks || []).forEach(sub => {
+    const subItem = document.createElement('div');
+    subItem.className = 'subtask-item' + (sub.completed ? ' subtask-completed' : '');
+    
+    const subCb = document.createElement('input');
+    subCb.type = 'checkbox';
+    subCb.className = 'subtask-checkbox';
+    subCb.checked = sub.completed;
+    subCb.addEventListener('change', () => toggleSubtask(task.id, sub.id));
+    
+    const subText = document.createElement('span');
+    subText.className = 'subtask-text';
+    subText.textContent = sub.text;
+    
+    const subDel = document.createElement('button');
+    subDel.className = 'subtask-delete-btn';
+    subDel.innerHTML = '×';
+    subDel.addEventListener('click', () => deleteSubtask(task.id, sub.id));
+    
+    subItem.append(subCb, subText, subDel);
+    subtasksList.appendChild(subItem);
+  });
+
+  const addSubDiv = document.createElement('div');
+  addSubDiv.className = 'add-subtask-div';
+  const subInput = document.createElement('input');
+  subInput.type = 'text';
+  subInput.className = 'add-subtask-input';
+  subInput.placeholder = 'Add subtask...';
+  subInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && subInput.value.trim()) {
+      e.preventDefault();
+      addSubtask(task.id, subInput.value.trim());
+    }
+  });
+  addSubDiv.appendChild(subInput);
+  
+  subtasksContainer.append(subtasksList, addSubDiv);
+
+  item.append(checkbox, content, actions, subtasksContainer);
   return item;
 }
 
