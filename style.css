@@ -99,6 +99,16 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .hero-title{font-size:2rem;font-weight:800;letter-spacing:-.03em;line-height:1.2;margin-bottom:8px}
 .hero-subtitle{font-size:1rem;color:var(--color-text-secondary)}
 
+/* SEARCH */
+.search-section{padding:10px 0 16px}
+.search-wrapper{position:relative;display:flex;align-items:center;background:var(--color-surface);border:1.5px solid var(--color-border);border-radius:var(--radius-md);transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}
+.search-wrapper:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+.search-icon{position:absolute;left:14px;color:var(--color-text-muted)}
+.search-input{width:100%;padding:14px 40px;font-size:0.95rem;font-family:var(--font);background:transparent;border:none;outline:none;color:var(--color-text-primary)}
+.search-input::placeholder{color:var(--color-text-muted)}
+.search-clear-btn{position:absolute;right:12px;background:none;border:none;font-size:1.4rem;line-height:1;color:var(--color-text-muted);cursor:pointer;padding:4px}
+.search-clear-btn:hover{color:var(--color-danger)}
+
 /* CATEGORY TABS (desktop) */
 .category-tabs-wrapper{padding:16px 0 6px}
 .category-tabs{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px}

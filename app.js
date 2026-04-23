@@ -63,6 +63,8 @@ const taskInput         = $('task-input');
 const addTaskBtn        = $('add-task-btn');
 const categorySelect    = $('category-select');
 const prioritySelect    = $('priority-select');
+const searchInput       = $('search-input');
+const searchClearBtn    = $('search-clear-btn');
 const reminderInput     = $('reminder-input');
 const activeTaskList    = $('active-task-list');
 const completedTaskList = $('completed-task-list');
@@ -85,6 +87,7 @@ let tasks = [];
 let unsubscribeTasks = null;
 let isSignupMode = false;
 let activeCategory = 'all';
+let searchQuery = '';
 let initialLoadDone = false;
 let overdueIntervalId = null;
 
@@ -840,7 +843,16 @@ function toggleEditMode(task) {
 // ============================================
 function renderTasks() {
   // Filter by active category
-  const filtered = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
+  let filtered = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
+  
+  // Filter by search query
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(t => 
+      t.text.toLowerCase().includes(q) || 
+      (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q)))
+    );
+  }
   
   // Sort tasks by priority
   const priorityWeight = { high: 3, medium: 2, low: 1 };
@@ -894,4 +906,20 @@ addTaskBtn.addEventListener('click', addTask);
 taskInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addTask(); }
 });
+
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value.trim();
+    searchClearBtn.style.display = searchQuery ? 'block' : 'none';
+    renderTasks();
+  });
+}
+if (searchClearBtn) {
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchQuery = '';
+    searchClearBtn.style.display = 'none';
+    renderTasks();
+  });
+}
 
