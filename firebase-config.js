@@ -12,7 +12,7 @@ import { getAuth, GoogleAuthProvider,
 import { getFirestore, collection, addDoc,
          deleteDoc, doc, updateDoc, query,
          orderBy, onSnapshot,
-         serverTimestamp }             from 'firebase/firestore';
+         serverTimestamp, writeBatch } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyClYYhtsn04OdidKPREmL1BFlBQvdodm_Y",
@@ -25,15 +25,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const auth         = getAuth(app);
-export const db           = getFirestore(app);
-export const googleProvider = new GoogleAuthProvider();
+const auth         = getAuth(app);
+const db           = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
 export {
-  // Auth
+  auth, db, googleProvider,
   signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
-  // Firestore
-  collection, addDoc, deleteDoc, doc, updateDoc,
-  query, orderBy, onSnapshot, serverTimestamp
+  collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp, writeBatch
 };

@@ -49,8 +49,13 @@ export async function scheduleTaskReminder(task) {
   // Don't schedule notifications for past times
   if (msUntil <= 0) return null;
 
-  // Generate a unique numeric notification ID
-  const notificationId = Date.now() % 100000;
+  // Generate a unique numeric notification ID using a hash of task.id
+  let hash = 0;
+  for (let i = 0; i < task.id.length; i++) {
+    hash = ((hash << 5) - hash) + task.id.charCodeAt(i);
+    hash |= 0; 
+  }
+  const notificationId = Math.abs(hash) % 2147483647;
 
   if (isNative()) {
     // ── NATIVE (Capacitor) ──
@@ -90,30 +95,38 @@ export async function scheduleTaskReminder(task) {
         return null;
       }
 
-      // Schedule the notification using setTimeout
-      const timeoutId = setTimeout(() => {
-        // Try service worker notification first (works when tab is minimized)
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'SHOW_NOTIFICATION',
-            title: 'TaskFlow Reminder 🔔',
-            body: `Time to: ${task.title}`,
-            taskId: task.id
-          });
+      // Schedule the notification using setTimeout recursively if needed
+      const MAX_TIMEOUT = 2147483647;
+      
+      const scheduleWebTimer = (delay) => {
+        if (delay > MAX_TIMEOUT) {
+          const timeoutId = setTimeout(() => {
+            scheduleWebTimer(reminderDate.getTime() - Date.now());
+          }, MAX_TIMEOUT);
+          webTimerMap.set(task.id, timeoutId);
         } else {
-          // Direct notification (only works when tab is focused/visible)
-          new Notification('TaskFlow Reminder 🔔', {
-            body: `Time to: ${task.title}`,
-            icon: '/favicon.ico',
-            tag: `task-${task.id}`
-          });
+          const timeoutId = setTimeout(() => {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({
+                type: 'SHOW_NOTIFICATION',
+                title: 'TaskFlow Reminder 🔔',
+                body: `Time to: ${task.title}`,
+                taskId: task.id
+              });
+            } else {
+              new Notification('TaskFlow Reminder 🔔', {
+                body: `Time to: ${task.title}`,
+                icon: '/favicon.ico',
+                tag: `task-${task.id}`
+              });
+            }
+            webTimerMap.delete(task.id);
+          }, delay);
+          webTimerMap.set(task.id, timeoutId);
         }
-        // Clean up the timer reference
-        webTimerMap.delete(task.id);
-      }, msUntil);
+      };
 
-      // Store the timeout ID so we can cancel it later
-      webTimerMap.set(task.id, timeoutId);
+      scheduleWebTimer(msUntil);
     } catch (err) {
       console.error('Error scheduling web notification:', err);
       return null;
