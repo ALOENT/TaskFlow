@@ -169,6 +169,9 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .task-text{font-size:.95rem;font-weight:500;line-height:1.4;word-break:break-word}
 .task-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .task-category-badge{font-size:.75rem;font-weight:500;color:var(--color-text-secondary);background:var(--color-bg);padding:2px 8px;border-radius:var(--radius-full);white-space:nowrap}
+.priority-high { color: var(--color-danger); background: var(--color-danger-bg); }
+.priority-medium { color: #d97706; background: #fef3c7; }
+.priority-low { color: var(--color-success); background: #ecfdf5; }
 .task-reminder-badge{font-size:.75rem;font-weight:600;color:var(--color-accent);background:var(--color-accent-light);padding:2px 8px;border-radius:var(--radius-full);white-space:nowrap}
 .task-reminder-badge.overdue{color:var(--color-danger);background:var(--color-danger-bg);font-weight:700}
 

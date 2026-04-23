@@ -62,6 +62,7 @@ const signoutBtn        = $('signout-btn');
 const taskInput         = $('task-input');
 const addTaskBtn        = $('add-task-btn');
 const categorySelect    = $('category-select');
+const prioritySelect    = $('priority-select');
 const reminderInput     = $('reminder-input');
 const activeTaskList    = $('active-task-list');
 const completedTaskList = $('completed-task-list');
@@ -398,6 +399,7 @@ async function addTask() {
     const taskData = {
       text,
       category,
+      priority: prioritySelect ? prioritySelect.value : 'medium',
       completed: false,
       reminderTime,
       notificationId: null,
@@ -473,7 +475,7 @@ async function deleteTask(id) {
 // ============================================
 //  INLINE EDIT — save changes
 // ============================================
-async function saveEdit(id, newText, newReminder, newCategory) {
+async function saveEdit(id, newText, newReminder, newCategory, newPriority) {
   if (!currentUser) return;
   const task = tasks.find(t => t.id === id);
   if (!task) return;
@@ -483,6 +485,7 @@ async function saveEdit(id, newText, newReminder, newCategory) {
 
   if (newText !== undefined && newText !== task.text) updates.text = newText;
   if (newCategory !== undefined && newCategory !== task.category) updates.category = newCategory;
+  if (newPriority !== undefined && newPriority !== task.priority) updates.priority = newPriority;
 
   // Handle reminder time change
   const oldReminder = task.reminderTime || null;
@@ -570,6 +573,13 @@ function createTaskElement(task) {
   catBadge.textContent = `${catObj.icon} ${catObj.label}`;
   meta.appendChild(catBadge);
 
+  const priority = task.priority || 'medium';
+  const priorityIcons = { high: '🔴', medium: '🟠', low: '🟢' };
+  const priorityBadge = document.createElement('span');
+  priorityBadge.className = `task-category-badge priority-${priority}`;
+  priorityBadge.textContent = `${priorityIcons[priority]} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`;
+  meta.appendChild(priorityBadge);
+
   if (task.reminderTime) {
     const reminderBadge = document.createElement('span');
     reminderBadge.className = 'task-reminder-badge' + (isOverdue(task) ? ' overdue' : '');
@@ -631,6 +641,22 @@ function toggleEditMode(task) {
   titleInput.value = task.text;
   titleInput.maxLength = 120;
 
+  // Priority select
+  const priSelect = document.createElement('select');
+  priSelect.className = 'edit-category-select';
+  const priOptions = [
+    { value: 'high', label: '🔴 High' },
+    { value: 'medium', label: '🟠 Medium' },
+    { value: 'low', label: '🟢 Low' }
+  ];
+  priOptions.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.value;
+    opt.textContent = p.label;
+    if (p.value === (task.priority || 'medium')) opt.selected = true;
+    priSelect.appendChild(opt);
+  });
+
   // Category select
   const catSelect = document.createElement('select');
   catSelect.className = 'edit-category-select';
@@ -666,7 +692,7 @@ function toggleEditMode(task) {
     const newText = titleInput.value.trim();
     if (!newText) return;
     const newRem = editPicker.selectedDates.length > 0 ? editPicker.selectedDates[0].toISOString() : null;
-    await saveEdit(task.id, newText, newRem, catSelect.value);
+    await saveEdit(task.id, newText, newRem, catSelect.value, priSelect.value);
   });
 
   const cancelBtn = document.createElement('button');
@@ -681,7 +707,7 @@ function toggleEditMode(task) {
 
   btnRow.append(saveBtn, cancelBtn);
 
-  editForm.append(titleInput, catSelect, remInput, clearRemBtn, btnRow);
+  editForm.append(titleInput, priSelect, catSelect, remInput, clearRemBtn, btnRow);
   content.replaceWith(editForm);
 
   titleInput.focus();
@@ -697,6 +723,18 @@ function toggleEditMode(task) {
 function renderTasks() {
   // Filter by active category
   const filtered = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
+  
+  // Sort tasks by priority
+  const priorityWeight = { high: 3, medium: 2, low: 1 };
+  filtered.sort((a, b) => {
+    const pA = priorityWeight[a.priority || 'medium'];
+    const pB = priorityWeight[b.priority || 'medium'];
+    if (pA !== pB) return pB - pA;
+    const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+    const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+    return tB - tA;
+  });
+
   const active = filtered.filter(t => !t.completed);
   const completed = filtered.filter(t => t.completed);
   const total = filtered.length;
