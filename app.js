@@ -351,11 +351,18 @@ const getFlatpickrConfig = (defaultDate = null) => ({
     const btnContainer = document.createElement('div');
     btnContainer.className = 'flatpickr-actions';
     
+    const previousDate = instance.selectedDates.length > 0 ? instance.selectedDates[0] : null;
+
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'flatpickr-cancel-btn';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', () => {
+      if (previousDate) {
+        instance.setDate(previousDate, false);
+      } else {
+        instance.clear();
+      }
       instance.close();
     });
 
@@ -610,6 +617,10 @@ async function toggleSubtask(taskId, subtaskId) {
     if (task.notificationId != null) {
       await cancelTaskReminder(task.notificationId, task.id);
       updates.notificationId = null;
+    }
+    // Handle recurrence when completing via subtasks
+    if (task.recurrence && task.recurrence !== 'none') {
+      await handleRecurrence(task);
     }
   }
   
@@ -912,24 +923,29 @@ async function reorderTasks(draggedId, targetId) {
   }
 
   const newOrderNodes = Array.from(activeTaskList.children);
-  const batch = writeBatch(db);
   const now = Date.now();
   
+  const newOrders = new Map();
   newOrderNodes.forEach((node, index) => {
-    const id = node.dataset.id;
+    newOrders.set(node.dataset.id, now + index);
+  });
+
+  const batch = writeBatch(db);
+  newOrders.forEach((newOrder, id) => {
     const taskRef = doc(db, 'users', currentUser.uid, 'tasks', id);
-    // Use timestamp-based order to maintain stable sorting
-    const newOrder = now + index; 
     batch.update(taskRef, { order: newOrder });
-    const t = tasks.find(t => t.id === id);
-    if (t) t.order = newOrder;
   });
 
   try {
     await batch.commit();
+    // Only update local state after successful commit
+    newOrders.forEach((newOrder, id) => {
+      const t = tasks.find(t => t.id === id);
+      if (t) t.order = newOrder;
+    });
   } catch (err) {
     console.error('Reorder failed:', err);
-    renderTasks();
+    renderTasks(); // Revert UI
   }
 }
 

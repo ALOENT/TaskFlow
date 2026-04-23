@@ -28,8 +28,10 @@
     "@capacitor/core": "^8.3.1",
     "@capacitor/ios": "^8.3.1",
     "@capacitor/local-notifications": "^8.0.2",
+    "dompurify": "^3.4.1",
     "firebase": "^12.12.1",
-    "flatpickr": "^4.6.13"
+    "flatpickr": "^4.6.13",
+    "jsdom": "^29.0.2"
   },
   "devDependencies": {
     "vite": "^8.0.9"
