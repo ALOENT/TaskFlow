@@ -351,15 +351,13 @@ const getFlatpickrConfig = (defaultDate = null) => ({
     const btnContainer = document.createElement('div');
     btnContainer.className = 'flatpickr-actions';
     
-    const previousDate = instance.selectedDates.length > 0 ? instance.selectedDates[0] : null;
-
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'flatpickr-cancel-btn';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', () => {
-      if (previousDate) {
-        instance.setDate(previousDate, false);
+      if (instance._previousDate) {
+        instance.setDate(instance._previousDate, false);
       } else {
         instance.clear();
       }
@@ -377,6 +375,10 @@ const getFlatpickrConfig = (defaultDate = null) => ({
     btnContainer.appendChild(cancelBtn);
     btnContainer.appendChild(confirmBtn);
     instance.calendarContainer.appendChild(btnContainer);
+  },
+  onOpen: function(selectedDates, dateStr, instance) {
+    // Capture the confirmed date before user starts picking
+    instance._previousDate = instance.selectedDates.length > 0 ? instance.selectedDates[0] : null;
   }
 });
 
