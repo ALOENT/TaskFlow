@@ -129,11 +129,15 @@ updateThemeIcon(savedTheme);
 
 if (themeToggleBtn) {
   themeToggleBtn.addEventListener('click', () => {
+    document.body.classList.add('theme-transitioning');
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('taskflow-theme', newTheme);
     updateThemeIcon(newTheme);
+    setTimeout(() => {
+      document.body.classList.remove('theme-transitioning');
+    }, 400);
   });
 }
 

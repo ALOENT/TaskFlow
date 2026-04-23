@@ -57,9 +57,25 @@
 
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html{font-size:16px;scroll-behavior:smooth}
-body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-primary);line-height:1.6;min-height:100dvh;-webkit-font-smoothing:antialiased;padding-top:var(--safe-top);transition: background-color var(--transition-theme), color var(--transition-theme), border-color var(--transition-theme), box-shadow var(--transition-theme);}
+body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-primary);line-height:1.6;min-height:100dvh;-webkit-font-smoothing:antialiased;padding-top:var(--safe-top);}
 
-.theme-toggle-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:6px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition:all var(--transition-fast);outline:none}
+* {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease !important;
+}
+
+.theme-transitioning * {
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.3s ease !important;
+}
+
+.theme-toggle-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:6px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition: transform 0.4s ease, background var(--transition-fast), color var(--transition-fast);outline:none}
+.theme-toggle-btn svg { transition: transform 0.4s ease; }
+[data-theme="dark"] .theme-toggle-btn svg { transform: rotate(360deg); }
 .theme-toggle-btn:hover, .theme-toggle-btn:focus-visible{color:var(--color-accent);background:var(--color-surface)}
 .theme-toggle-btn:focus-visible{box-shadow:0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent)}
 
