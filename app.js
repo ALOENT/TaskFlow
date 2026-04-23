@@ -17,6 +17,9 @@ import {
   rescheduleAllReminders, registerServiceWorker
 } from './notifications.js';
 
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/themes/dark.css';
+
 // ============================================
 //  CATEGORIES
 // ============================================
@@ -297,6 +300,49 @@ function switchCategory(catId) {
 renderCategoryTabs();
 
 // ============================================
+//  FLATPICKR CONFIGURATION
+// ============================================
+const getFlatpickrConfig = (defaultDate = null) => ({
+  enableTime: true,
+  dateFormat: "Z",
+  altInput: true,
+  altFormat: "M j, Y h:i K",
+  disableMobile: true, // Force custom UI instead of native picker
+  defaultDate: defaultDate,
+  onReady: function(selectedDates, dateStr, instance) {
+    const btnContainer = document.createElement('div');
+    btnContainer.className = 'flatpickr-actions';
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'flatpickr-cancel-btn';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', () => {
+      instance.close();
+    });
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'flatpickr-confirm-btn';
+    confirmBtn.textContent = 'Confirm';
+    confirmBtn.addEventListener('click', () => {
+      instance.close();
+    });
+
+    btnContainer.appendChild(cancelBtn);
+    btnContainer.appendChild(confirmBtn);
+    instance.calendarContainer.appendChild(btnContainer);
+  }
+});
+
+let mainReminderPicker = null;
+
+// Initialize the main add-task reminder picker
+if (reminderInput) {
+  mainReminderPicker = flatpickr(reminderInput, getFlatpickrConfig());
+}
+
+// ============================================
 //  FIRESTORE — REAL-TIME LISTENER
 // ============================================
 function subscribeToTasks(uid) {
@@ -339,10 +385,12 @@ async function addTask() {
   }
 
   const category = categorySelect ? categorySelect.value : 'other';
-  const reminderTime = reminderInput && reminderInput.value ? new Date(reminderInput.value).toISOString() : null;
+  const reminderTime = mainReminderPicker && mainReminderPicker.selectedDates.length > 0 
+    ? mainReminderPicker.selectedDates[0].toISOString() 
+    : null;
 
   taskInput.value = '';
-  if (reminderInput) reminderInput.value = '';
+  if (mainReminderPicker) mainReminderPicker.clear();
   taskInput.focus();
 
   try {
@@ -594,14 +642,18 @@ function toggleEditMode(task) {
     catSelect.appendChild(opt);
   });
 
-  // Reminder input
+  // Reminder input (Flatpickr)
   const remInput = document.createElement('input');
-  remInput.type = 'datetime-local';
+  remInput.type = 'text';
   remInput.className = 'edit-reminder-input';
+  remInput.placeholder = 'Set a reminder...';
+  
+  let initialDate = null;
   if (task.reminderTime) {
-    const d = new Date(task.reminderTime);
-    remInput.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    initialDate = new Date(task.reminderTime);
   }
+  
+  const editPicker = flatpickr(remInput, getFlatpickrConfig(initialDate));
 
   // Button row
   const btnRow = document.createElement('div');
@@ -613,7 +665,8 @@ function toggleEditMode(task) {
   saveBtn.addEventListener('click', async () => {
     const newText = titleInput.value.trim();
     if (!newText) return;
-    await saveEdit(task.id, newText, remInput.value || null, catSelect.value);
+    const newRem = editPicker.selectedDates.length > 0 ? editPicker.selectedDates[0].toISOString() : null;
+    await saveEdit(task.id, newText, newRem, catSelect.value);
   });
 
   const cancelBtn = document.createElement('button');
@@ -624,7 +677,7 @@ function toggleEditMode(task) {
   const clearRemBtn = document.createElement('button');
   clearRemBtn.className = 'edit-clear-rem-btn';
   clearRemBtn.textContent = '🔕 Clear Reminder';
-  clearRemBtn.addEventListener('click', () => { remInput.value = ''; });
+  clearRemBtn.addEventListener('click', () => { editPicker.clear(); });
 
   btnRow.append(saveBtn, cancelBtn);
 
