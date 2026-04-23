@@ -18,7 +18,7 @@ import {
 } from './notifications.js';
 
 import flatpickr from 'flatpickr';
-import 'flatpickr/dist/themes/dark.css';
+import 'flatpickr/dist/flatpickr.css';
 
 // ============================================
 //  CATEGORIES
