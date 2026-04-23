@@ -94,187 +94,301 @@
 
   <!-- MAIN APP -->
   <div class="app-container" id="app-container" style="display:none;">
-    <!-- Header -->
-    <header class="header" id="app-header">
-      <div class="header-left">
-        <div class="logo-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-          </svg>
-        </div>
-        <span class="logo-text">TaskFlow</span>
-      </div>
-      <div class="user-info" id="user-info">
-        <div class="user-avatar" id="user-avatar">?</div>
-        <div class="user-details">
-          <span class="user-name" id="user-name">Loading…</span>
-          <span class="user-email" id="user-email"></span>
-        </div>
-        <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Theme" aria-label="Toggle Dark Mode">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        </button>
-        <button class="signout-btn" id="signout-btn" title="Sign out">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          Sign Out
-        </button>
-      </div>
-    </header>
-
-    <main class="main-content">
-      <!-- Hero -->
-      <section class="hero-section" id="hero-section">
-        <h1 class="hero-title">Manage your tasks with ease</h1>
-        <p class="hero-subtitle">Add, organize, and complete your daily tasks efficiently.</p>
-      </section>
-
-      <!-- Search Bar -->
-      <section class="search-section" id="search-section">
-        <div class="search-wrapper">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="search-input" class="search-input" placeholder="Search tasks..." autocomplete="off"/>
-          <button id="search-clear-btn" class="search-clear-btn" style="display:none;" aria-label="Clear search">×</button>
-        </div>
-      </section>
-
-      <!-- Category Tabs (desktop) -->
-      <div class="category-tabs-wrapper" id="category-tabs-wrapper">
-        <div class="category-tabs" id="category-tabs"></div>
-      </div>
-
-      <!-- Dashboard Stats -->
-      <section class="dashboard" id="dashboard">
-        <div class="stat-card" id="stat-total">
-          <div class="stat-icon stat-icon-total">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
-              <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
-              <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-            </svg>
-          </div>
-          <span class="stat-number" id="total-count">0</span>
-          <span class="stat-label">Total Tasks</span>
-        </div>
-        <div class="stat-card" id="stat-high">
-          <div class="stat-icon stat-icon-high">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <span class="stat-number" id="high-count">0</span>
-          <span class="stat-label">High Priority</span>
-        </div>
-        <div class="stat-card" id="stat-overdue">
-          <div class="stat-icon stat-icon-overdue">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </div>
-          <span class="stat-number" id="overdue-count">0</span>
-          <span class="stat-label">Overdue</span>
-        </div>
-        <div class="stat-card" id="stat-today">
-          <div class="stat-icon stat-icon-today">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <span class="stat-number" id="today-count">0</span>
-          <span class="stat-label">Due Today</span>
-        </div>
-        <div class="stat-card progress-ring-card">
-          <div class="progress-ring-container">
-            <svg class="progress-ring" width="60" height="60">
-              <circle class="progress-ring-circle-bg" stroke="var(--color-border)" stroke-width="6" fill="transparent" r="24" cx="30" cy="30"/>
-              <circle class="progress-ring-circle" id="progress-circle" stroke="var(--color-accent)" stroke-width="6" stroke-dasharray="150.79" stroke-dashoffset="150.79" stroke-linecap="round" fill="transparent" r="24" cx="30" cy="30"/>
-            </svg>
-            <span class="progress-percent" id="completed-percentage">0%</span>
-          </div>
-          <span class="stat-label">Completion</span>
-        </div>
-      </section>
-
-      <!-- Add Task -->
-      <section class="add-task-section" id="add-task-section">
-        <div class="add-task-wrapper">
-          <div class="add-task-row">
-            <input type="text" id="task-input" class="task-input" placeholder="Add a new task…" maxlength="120" autocomplete="off"/>
-            <button id="add-task-btn" class="add-task-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    <div class="layout-wrapper">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="branding">
+            <div class="logo-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
               </svg>
-              Add
+            </div>
+            <span class="logo-text">TaskFlow</span>
+          </div>
+          
+          <div class="sidebar-user" id="sidebar-user">
+            <div class="user-avatar" id="side-user-avatar">?</div>
+            <div class="user-info">
+              <span class="user-name" id="side-user-name">Loading…</span>
+              <span class="user-email" id="side-user-email"></span>
+            </div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <ul class="nav-list">
+            <li class="nav-item active" data-nav="all" tabindex="0" role="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>All Tasks</span>
+            </li>
+            <li class="nav-item" data-nav="today" tabindex="0" role="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>Today</span>
+            </li>
+            <li class="nav-item" data-nav="upcoming" tabindex="0" role="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span>Upcoming</span>
+            </li>
+            <li class="nav-item" data-nav="completed" tabindex="0" role="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Completed</span>
+            </li>
+          </ul>
+
+          <div class="nav-divider"></div>
+
+          <div class="sidebar-section">
+            <div class="section-header">
+              <span>Categories</span>
+              <button class="add-cat-btn" id="add-cat-btn" title="Add Category">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+            <ul class="nav-list" id="sidebar-categories">
+              <!-- Categories injected by JS -->
+            </ul>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="footer-btn" id="settings-btn" title="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Settings</span>
+          </button>
+          <button class="footer-btn logout-btn" id="side-signout-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Sidebar Overlay -->
+      <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+      <!-- Main Content -->
+      <div class="main-content-wrapper">
+        <!-- Mobile Top Bar -->
+        <header class="mobile-top-bar">
+          <button class="menu-btn" id="menu-btn" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="mobile-branding">
+            <div class="logo-icon mini">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <span class="logo-text">TaskFlow</span>
+          </div>
+          <div class="mobile-top-right">
+            <button class="theme-toggle-btn" id="mobile-theme-toggle" title="Toggle Theme">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </button>
+            <div class="user-avatar mini" id="mobile-user-avatar">?</div>
           </div>
-          <textarea id="task-notes-input" class="task-notes-input" placeholder="Add notes (optional)..." rows="2" style="display:none;"></textarea>
-          <button id="toggle-notes-btn" class="toggle-notes-btn">📝 Add Note</button>
-          <div class="add-task-options">
-            <label for="priority-select" class="visually-hidden">Priority</label>
-            <select id="priority-select" class="category-select" title="Set priority">
-              <option value="high">🔴 High</option>
-              <option value="medium" selected>🟠 Medium</option>
-              <option value="low">🟢 Low</option>
-            </select>
-            <label for="category-select" class="visually-hidden">Category</label>
-            <select id="category-select" class="category-select">
-              <option value="work">💼 Work</option>
-              <option value="personal">🏠 Personal</option>
-              <option value="shopping">🛒 Shopping</option>
-              <option value="health">💪 Health</option>
-              <option value="other" selected>📌 Other</option>
-            </select>
-            <label for="recurrence-select" class="visually-hidden">Recurrence</label>
-            <select id="recurrence-select" class="category-select" title="Set recurrence">
-              <option value="none" selected>🔁 None</option>
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-            <label for="reminder-input" class="visually-hidden">Reminder</label>
-            <input type="text" id="reminder-input" class="reminder-input" placeholder="Set a reminder..." title="Set a reminder (optional)"/>
+        </header>
+
+        <header class="top-bar desktop-only">
+          <h2 class="page-title" id="page-title">All Tasks</h2>
+          
+          <div class="top-bar-center">
+            <div class="search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="top-search-input" placeholder="Search tasks..." autocomplete="off" aria-label="Search tasks">
+            </div>
+          </div>
+
+          <div class="top-bar-right">
+            <button class="theme-toggle-btn" id="theme-toggle-btn" title="Toggle Theme">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+            <div class="user-avatar mini" id="top-user-avatar">?</div>
+          </div>
+        </header>
+
+        <main class="content-area">
+          <!-- Mobile Hero Greeting -->
+          <section class="mobile-hero">
+            <div class="greeting-row">
+              <h1 class="greeting-text">Hello, <span id="user-first-name">User</span> 👋</h1>
+              <span class="current-date" id="current-date">Thursday, April 23</span>
+            </div>
+            <div class="mobile-progress-container">
+              <div class="progress-info">
+                <span class="progress-label">Today's Progress</span>
+                <span class="progress-count" id="mobile-progress-count">0 of 0 tasks</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="mobile-progress-fill"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Stats Row -->
+          <div class="stats-grid" id="stats-grid">
+            <div class="stat-card minimal" id="stat-total">
+              <div class="stat-info">
+                <span class="stat-label">Total</span>
+                <span class="stat-value" id="total-count">0</span>
+              </div>
+            </div>
+            <div class="stat-card minimal" id="stat-high">
+              <div class="stat-info">
+                <span class="stat-label">High Priority</span>
+                <span class="stat-value" id="high-count">0</span>
+              </div>
+            </div>
+            <div class="stat-card minimal" id="stat-overdue">
+              <div class="stat-info">
+                <span class="stat-label">Overdue</span>
+                <span class="stat-value" id="overdue-count">0</span>
+              </div>
+            </div>
+            <div class="stat-card minimal" id="stat-today">
+              <div class="stat-info">
+                <span class="stat-label">Due Today</span>
+                <span class="stat-value" id="today-count">0</span>
+              </div>
+            </div>
+            <div class="stat-card minimal completion">
+              <div class="stat-info">
+                <span class="stat-label">Completion</span>
+                <span class="stat-value" id="completed-percentage">0%</span>
+              </div>
+              <div class="mini-progress">
+                <div class="progress-bar" id="progress-bar-inner" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skeleton Loader -->
+          <div class="skeleton-loader" id="skeleton-loader" style="display:none;">
+            <div class="skeleton-item"><div class="skeleton-checkbox"></div><div class="skeleton-lines"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></div>
+            <div class="skeleton-item"><div class="skeleton-checkbox"></div><div class="skeleton-lines"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></div>
+          </div>
+
+          <!-- Tasks Sections -->
+          <div class="task-sections-container">
+            <section class="task-section" id="active-section">
+              <h3 class="section-title">Active Tasks</h3>
+              <div class="task-list" id="active-task-list"></div>
+              <div class="empty-state" id="active-empty" style="display:none;">
+                <p>No tasks found.</p>
+              </div>
+            </section>
+
+            <section class="task-section" id="completed-section">
+              <h3 class="section-title">Completed</h3>
+              <div class="task-list" id="completed-task-list"></div>
+              <div class="empty-state" id="completed-empty" style="display:none;">
+                <p>No completed tasks.</p>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <!-- Floating Add Task at bottom of Main Area -->
+        <div class="add-task-floating">
+          <div class="add-task-container">
+            <div class="input-row">
+              <input type="text" id="task-input" placeholder="Add a new task…" maxlength="120" autocomplete="off" aria-label="New task title">
+              <div class="input-actions">
+                <select id="priority-select" title="Priority" aria-label="Task priority">
+                  <option value="high">🔴 High</option>
+                  <option value="medium" selected>🟠 Medium</option>
+                  <option value="low">🟢 Low</option>
+                </select>
+                <select id="category-select" aria-label="Task category">
+                  <option value="work">💼 Work</option>
+                  <option value="personal">🏠 Personal</option>
+                  <option value="shopping">🛒 Shopping</option>
+                  <option value="health">💪 Health</option>
+                  <option value="other" selected>📌 Other</option>
+                </select>
+                <button id="add-task-btn" class="primary-btn">Add Task</button>
+              </div>
+            </div>
+            <div class="input-details">
+              <input type="text" id="reminder-input" placeholder="Set reminder..." aria-label="Task reminder">
+              <select id="recurrence-select" aria-label="Task recurrence">
+                <option value="none" selected>No Repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <button id="toggle-notes-btn" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
+            </div>
+            <textarea id="task-notes-input" placeholder="Add notes (optional)..." rows="2" style="display:none;" aria-label="Task notes"></textarea>
           </div>
         </div>
-      </section>
 
-      <!-- Skeleton Loader -->
-      <div class="skeleton-loader" id="skeleton-loader" style="display:none;">
-        <div class="skeleton-item"><div class="skeleton-checkbox"></div><div class="skeleton-lines"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></div>
-        <div class="skeleton-item"><div class="skeleton-checkbox"></div><div class="skeleton-lines"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></div>
-        <div class="skeleton-item"><div class="skeleton-checkbox"></div><div class="skeleton-lines"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div></div>
+        <!-- Mobile FAB -->
+        <button class="fab-btn" id="fab-btn" aria-label="Add Task">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+
+        <!-- Bottom Sheet (Add Task) -->
+        <div class="bottom-sheet-overlay" id="bottom-sheet-overlay"></div>
+        <div class="bottom-sheet" id="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-content">
+            <h3 class="sheet-title">New Task</h3>
+            <div class="sheet-form">
+              <label for="sheet-task-input" class="visually-hidden">Task title</label>
+              <input type="text" id="sheet-task-input" placeholder="What needs to be done?" maxlength="120">
+              
+              <div class="sheet-row">
+                <div class="sheet-col">
+                  <label for="sheet-priority-select">Priority</label>
+                  <select id="sheet-priority-select">
+                    <option value="high">🔴 High</option>
+                    <option value="medium" selected>🟠 Medium</option>
+                    <option value="low">🟢 Low</option>
+                  </select>
+                </div>
+                <div class="sheet-col">
+                  <label for="sheet-category-select">Category</label>
+                  <select id="sheet-category-select">
+                    <option value="work">💼 Work</option>
+                    <option value="personal">🏠 Personal</option>
+                    <option value="shopping">🛒 Shopping</option>
+                    <option value="health">💪 Health</option>
+                    <option value="other" selected>📌 Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="sheet-row">
+                <div class="sheet-col">
+                  <label for="sheet-reminder-input">Reminder</label>
+                  <input type="text" id="sheet-reminder-input" placeholder="Set time...">
+                </div>
+                <div class="sheet-col">
+                  <label for="sheet-recurrence-select">Recurrence</label>
+                  <select id="sheet-recurrence-select">
+                    <option value="none" selected>No Repeat</option>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="sheet-notes-section">
+                <button id="sheet-toggle-notes" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
+                <label for="sheet-notes-input" class="visually-hidden">Notes</label>
+                <textarea id="sheet-notes-input" placeholder="Add more details..." rows="3" style="display:none;"></textarea>
+              </div>
+
+              <button id="sheet-add-task-btn" class="primary-btn full-width">Add Task</button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <!-- Active Tasks -->
-      <section class="task-section" id="active-section">
-        <h2 class="section-title">ACTIVE (<span id="active-section-count">0</span>)</h2>
-        <div class="task-list" id="active-task-list"></div>
-        <div class="empty-state" id="active-empty" style="display:none;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c5c9d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-          </svg>
-          <p>No active tasks. Add one above!</p>
-        </div>
-      </section>
-
-      <!-- Completed Tasks -->
-      <section class="task-section" id="completed-section">
-        <h2 class="section-title">COMPLETED (<span id="completed-section-count">0</span>)</h2>
-        <div class="task-list" id="completed-task-list"></div>
-        <div class="empty-state" id="completed-empty" style="display:none;">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c5c9d6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          <p>No completed tasks yet. Keep going!</p>
-        </div>
-      </section>
-    </main>
-
-    <footer class="footer" id="app-footer">
-      <p>&copy; 2026 TaskFlow. Built for productivity.</p>
-    </footer>
-
-    <!-- Bottom Navigation (mobile only, rendered by JS) -->
+    <!-- Bottom Navigation (mobile only) -->
     <nav class="bottom-nav" id="bottom-nav"></nav>
   </div>
 

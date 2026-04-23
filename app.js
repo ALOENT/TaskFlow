@@ -56,10 +56,22 @@ const authSubmitText    = $('auth-submit-text');
 const btnSpinner        = $('btn-spinner');
 const togglePassword    = $('toggle-password');
 const eyeIcon           = $('eye-icon');
-const userAvatar        = $('user-avatar');
-const userName          = $('user-name');
-const userEmail         = $('user-email');
-const signoutBtn        = $('signout-btn');
+
+// Updated User DOM Refs
+const sideUserAvatar    = $('side-user-avatar');
+const sideUserName      = $('side-user-name');
+const sideUserEmail     = $('side-user-email');
+const topUserAvatar     = $('top-user-avatar');
+const pageTitle         = $('page-title');
+
+// Sidebar Nav Refs
+const sideSignoutBtn    = $('side-signout-btn');
+const sidebarNav        = document.querySelector('.sidebar-nav');
+const sidebarCategories = $('sidebar-categories');
+
+// Top Bar Search
+const topSearchInput    = $('top-search-input');
+
 const themeToggleBtn    = $('theme-toggle-btn');
 const taskInput         = $('task-input');
 const taskNotesInput    = $('task-notes-input');
@@ -68,8 +80,6 @@ const addTaskBtn        = $('add-task-btn');
 const categorySelect    = $('category-select');
 const prioritySelect    = $('priority-select');
 const recurrenceSelect  = $('recurrence-select');
-const searchInput       = $('search-input');
-const searchClearBtn    = $('search-clear-btn');
 const reminderInput     = $('reminder-input');
 const activeTaskList    = $('active-task-list');
 const completedTaskList = $('completed-task-list');
@@ -78,14 +88,31 @@ const highCountEl       = $('high-count');
 const overdueCountEl    = $('overdue-count');
 const todayCountEl      = $('today-count');
 const completedPercentEl = $('completed-percentage');
-const progressCircle    = $('progress-circle');
-const activeSectionCount = $('active-section-count');
-const completedSectionCount = $('completed-section-count');
-const activeEmptyEl     = $('active-empty');
-const completedEmptyEl  = $('completed-empty');
-const categoryTabs      = $('category-tabs');
-const bottomNav         = $('bottom-nav');
+const progressBarInner  = $('progress-bar-inner');
 const skeletonLoader    = $('skeleton-loader');
+const bottomNav         = $('bottom-nav');
+
+// Mobile Refs
+const menuBtn           = $('menu-btn');
+const sidebar           = $('sidebar');
+const sidebarOverlay    = $('sidebar-overlay');
+const mobileThemeToggle = $('mobile-theme-toggle');
+const mobileUserAvatar  = $('mobile-user-avatar');
+const userFirstName     = $('user-first-name');
+const currentDateEl     = $('current-date');
+const mobileProgCount   = $('mobile-progress-count');
+const mobileProgFill    = $('mobile-progress-fill');
+const fabBtn            = $('fab-btn');
+const bottomSheet       = $('bottom-sheet');
+const sheetOverlay      = $('bottom-sheet-overlay');
+const sheetTaskInput    = $('sheet-task-input');
+const sheetPriority     = $('sheet-priority-select');
+const sheetCategory     = $('sheet-category-select');
+const sheetReminder     = $('sheet-reminder-input');
+const sheetRecurrence   = $('sheet-recurrence-select');
+const sheetToggleNotes  = $('sheet-toggle-notes');
+const sheetNotesInput   = $('sheet-notes-input');
+const sheetAddTaskBtn   = $('sheet-add-task-btn');
 
 // ============================================
 //  STATE
@@ -128,26 +155,30 @@ document.documentElement.setAttribute('data-theme', savedTheme);
 updateThemeIcon(savedTheme);
 
 if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', () => {
-    document.body.classList.add('theme-transitioning');
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('taskflow-theme', newTheme);
-    updateThemeIcon(newTheme);
-    setTimeout(() => {
-      document.body.classList.remove('theme-transitioning');
-    }, 400);
-  });
+  themeToggleBtn.addEventListener('click', toggleTheme);
+}
+if (mobileThemeToggle) {
+  mobileThemeToggle.addEventListener('click', toggleTheme);
+}
+
+function toggleTheme() {
+  document.body.classList.add('theme-transitioning');
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('taskflow-theme', newTheme);
+  updateThemeIcon(newTheme);
+  setTimeout(() => {
+    document.body.classList.remove('theme-transitioning');
+  }, 400);
 }
 
 function updateThemeIcon(theme) {
-  if (!themeToggleBtn) return;
-  if (theme === 'dark') {
-    themeToggleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
-  } else {
-    themeToggleBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-  }
+  const moonIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+  const sunIcon  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+  
+  if (themeToggleBtn) themeToggleBtn.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+  if (mobileThemeToggle) mobileThemeToggle.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
 }
 
 // ============================================
@@ -242,7 +273,7 @@ authForm.addEventListener('submit', async (e) => {
 // ============================================
 //  SIGN OUT
 // ============================================
-signoutBtn.addEventListener('click', async () => {
+sideSignoutBtn.addEventListener('click', async () => {
   if (unsubscribeTasks) { unsubscribeTasks(); unsubscribeTasks = null; }
   if (overdueIntervalId) { clearInterval(overdueIntervalId); overdueIntervalId = null; }
   tasks = [];
@@ -290,15 +321,40 @@ function resetAuthForm() {
 //  HEADER USER INFO
 // ============================================
 function updateHeaderUI(user) {
-  const displayName = user.displayName || user.email.split('@')[0];
-  const email = user.email;
-  userName.textContent = displayName;
-  userEmail.textContent = email;
-  if (user.photoURL) {
-    userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer">`;
-  } else {
-    const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-    userAvatar.textContent = initials;
+  const email = user.email || '';
+  const displayName = user.displayName || (email ? email.split('@')[0] : 'User');
+  const firstName = displayName.split(' ')[0];
+  
+  sideUserName.textContent = displayName;
+  sideUserEmail.textContent = email;
+  if (userFirstName) userFirstName.textContent = firstName;
+  
+  const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  
+  const avatarHTML = user.photoURL 
+    ? `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`
+    : initials;
+
+  if (sideUserAvatar) {
+    if (user.photoURL) sideUserAvatar.innerHTML = avatarHTML;
+    else sideUserAvatar.textContent = initials;
+  }
+  if (topUserAvatar) {
+    if (user.photoURL) topUserAvatar.innerHTML = avatarHTML;
+    else topUserAvatar.textContent = initials;
+  }
+  if (mobileUserAvatar) {
+    if (user.photoURL) mobileUserAvatar.innerHTML = avatarHTML;
+    else mobileUserAvatar.textContent = initials;
+  }
+  
+  updateCurrentDate();
+}
+
+function updateCurrentDate() {
+  if (currentDateEl) {
+    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+    currentDateEl.textContent = new Date().toLocaleDateString('en-US', options);
   }
 }
 
@@ -306,37 +362,111 @@ function updateHeaderUI(user) {
 //  CATEGORY TABS (Desktop + Bottom Nav Mobile)
 // ============================================
 function renderCategoryTabs() {
-  // Desktop tabs
-  if (categoryTabs) {
-    categoryTabs.innerHTML = CATEGORIES.map(c => `
-      <button class="cat-tab${c.id === activeCategory ? ' active' : ''}" data-cat="${c.id}">
-        <span class="cat-icon">${c.icon}</span>
-        <span class="cat-label">${c.label}</span>
-      </button>
-    `).join('');
-    categoryTabs.querySelectorAll('.cat-tab').forEach(btn => {
-      btn.addEventListener('click', () => switchCategory(btn.dataset.cat));
+  // Sidebar categories
+  if (sidebarCategories) {
+    sidebarCategories.innerHTML = CATEGORIES.filter(c => c.id !== 'all').map(c => {
+      const count = tasks.filter(t => !t.completed && t.category === c.id).length;
+      return `
+        <li class="nav-item${c.id === activeCategory ? ' active' : ''}" data-nav="${c.id}">
+          <span class="cat-icon">${c.icon}</span>
+          <span>${c.label}</span>
+          ${count > 0 ? `<span class="cat-badge">${count}</span>` : ''}
+        </li>
+      `;
+    }).join('');
+    
+    sidebarCategories.querySelectorAll('.nav-item').forEach(btn => {
+      btn.addEventListener('click', () => switchCategory(btn.dataset.nav));
     });
   }
-  // Mobile bottom nav
+
+  // Update Primary Nav Counts (All, Today, etc)
+  const todayStr = new Date().toDateString();
+  const now = new Date();
+  
+  const allCount = tasks.filter(t => !t.completed).length;
+  const todayCount = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr).length;
+  const upcomingCount = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime) > now).length;
+  const completedCount = tasks.filter(t => t.completed).length;
+
+  const counts = { 'all': allCount, 'today': todayCount, 'upcoming': upcomingCount, 'completed': completedCount };
+
+  document.querySelectorAll('.sidebar-nav .nav-list:first-child .nav-item').forEach(item => {
+    const nav = item.dataset.nav;
+    const badge = item.querySelector('.cat-badge');
+    if (badge) {
+      const c = counts[nav];
+      badge.textContent = c;
+      badge.style.display = c > 0 ? 'block' : 'none';
+    }
+  });
+
+  // Mobile bottom nav (5 tabs: All, Today, Upcoming, Completed, Stats)
   if (bottomNav) {
-    bottomNav.innerHTML = CATEGORIES.map(c => `
-      <button class="bottom-nav-item${c.id === activeCategory ? ' active' : ''}" data-cat="${c.id}">
-        <span class="bottom-nav-icon">${c.icon}</span>
-        <span class="bottom-nav-label">${c.label}</span>
+    const mobileTabs = [
+      { id: 'all',       label: 'All',       icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+      { id: 'today',     label: 'Today',     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
+      { id: 'upcoming',  label: 'Upcoming',  icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
+      { id: 'completed', label: 'Done',      icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' },
+      { id: 'stats',     label: 'Stats',     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' }
+    ];
+
+    bottomNav.innerHTML = mobileTabs.map(t => `
+      <button class="bottom-nav-item${t.id === activeCategory ? ' active' : ''}" data-nav="${t.id}">
+        <span class="bottom-nav-icon">${t.icon}</span>
+        <span class="bottom-nav-label">${t.label}</span>
       </button>
     `).join('');
+
     bottomNav.querySelectorAll('.bottom-nav-item').forEach(btn => {
-      btn.addEventListener('click', () => switchCategory(btn.dataset.cat));
+      btn.addEventListener('click', () => {
+        if (btn.dataset.nav === 'stats') {
+          const statsGrid = $('stats-grid');
+          if (statsGrid) statsGrid.scrollIntoView({ behavior: 'smooth' });
+          // Highlight stats tab visually without corrupting filter state
+          bottomNav.querySelectorAll('.bottom-nav-item').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        } else {
+          switchCategory(btn.dataset.nav);
+        }
+      });
     });
   }
 }
 
 function switchCategory(catId) {
   activeCategory = catId;
+  
+  // Update sidebar active states
+  document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.nav === catId);
+  });
+
+  // Update page title
+  if (pageTitle) {
+    const navItem = CATEGORIES.find(c => c.id === catId);
+    if (navItem) {
+      pageTitle.textContent = navItem.label + (catId === 'all' ? ' Tasks' : '');
+    } else {
+      const virtuals = { 'today': 'Today', 'upcoming': 'Upcoming', 'completed': 'Completed' };
+      pageTitle.textContent = virtuals[catId] || 'Tasks';
+    }
+  }
+
   renderCategoryTabs();
   renderTasks();
 }
+
+// Sidebar Primary Nav Listeners
+document.querySelectorAll('.sidebar-nav .nav-list:first-child .nav-item').forEach(item => {
+  item.addEventListener('click', () => switchCategory(item.dataset.nav));
+  item.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      switchCategory(item.dataset.nav);
+    }
+  });
+});
 
 // Initialize category tabs
 renderCategoryTabs();
@@ -703,159 +833,99 @@ function formatReminderTime(isoString) {
 
 function createTaskElement(task) {
   const item = document.createElement('div');
-  item.className = 'task-item' + (task.completed ? ' completed-item' : '') + (isOverdue(task) ? ' overdue-item' : '');
+  item.className = 'task-item';
   item.dataset.id = task.id;
+  item.dataset.priority = task.priority || 'none';
+  if (task.completed) item.classList.add('completed');
+  if (isOverdue(task)) item.classList.add('overdue-item');
 
-  // Checkbox
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'task-checkbox';
-  checkbox.checked = task.completed;
-  checkbox.id = 'cb-' + task.id;
-  checkbox.setAttribute('aria-label', task.completed ? 'Mark as active' : 'Mark as completed');
+  const cat = CATEGORIES.find(c => c.id === task.category) || CATEGORIES[5];
+  const subtasksCount = task.subtasks ? task.subtasks.length : 0;
+  const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
+  const isOverdueTask = isOverdue(task);
+
+  item.innerHTML = `
+    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
+    <div class="task-content">
+      <div class="task-text">${task.text}</div>
+      ${task.notes ? `<div class="task-notes-display visible">${task.notes}</div>` : ''}
+      <div class="task-meta">
+        <span class="task-category-badge">${cat.icon} ${cat.label}</span>
+        <span class="task-category-badge priority-${task.priority || 'medium'}">${{high:'🔴',medium:'🟠',low:'🟢'}[task.priority||'medium']} ${(task.priority||'medium').charAt(0).toUpperCase()+(task.priority||'medium').slice(1)}</span>
+        ${task.recurrence && task.recurrence !== 'none' ? `<span class="task-category-badge">🔁 ${task.recurrence}</span>` : ''}
+        ${task.reminderTime ? `<span class="task-reminder-badge${isOverdueTask ? ' overdue' : ''}">${isOverdueTask ? '⏰ Overdue' : '🔔 ' + formatReminderTime(task.reminderTime)}</span>` : ''}
+        ${subtasksCount > 0 ? `<span class="task-category-badge subtask-badge">📋 ${completedSubtasks}/${subtasksCount}</span>` : ''}
+      </div>
+      <div class="task-meta-mobile">
+        <span class="mobile-tag">${cat.icon} ${cat.label}</span>
+        ${task.reminderTime ? `<span class="mobile-tag ${isOverdueTask ? 'overdue' : ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> ${formatReminderTime(task.reminderTime)}</span>` : ''}
+        ${subtasksCount > 0 ? `<span class="subtask-pill">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
+      </div>
+      <div class="task-icons-row">
+        ${task.recurrence && task.recurrence !== 'none' ? '<span>🔁</span>' : ''}
+        ${task.notes ? '<span>📝</span>' : ''}
+      </div>
+    </div>
+    <div class="task-actions desktop-only">
+      <button class="action-btn subtasks-btn" title="Toggle Subtasks">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <button class="action-btn edit-btn" title="Edit">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+      <button class="action-btn delete-btn" title="Delete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </button>
+    </div>
+    <div class="subtasks-container" style="display: none;">
+      <div class="subtasks-list"></div>
+      <div class="add-subtask-div">
+        <input type="text" class="add-subtask-input" placeholder="Add subtask...">
+      </div>
+    </div>
+  `;
+
+  // Attach event listeners
+  const checkbox = item.querySelector('.task-checkbox');
   checkbox.addEventListener('change', () => toggleTask(task.id));
 
-  // Content wrapper
-  const content = document.createElement('div');
-  content.className = 'task-content';
+  const editBtn = item.querySelector('.edit-btn');
+  editBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleEditMode(task); });
 
-  // Text
-  const text = document.createElement('span');
-  text.className = 'task-text';
-  text.textContent = task.text;
-  content.appendChild(text);
+  const deleteBtn = item.querySelector('.delete-btn');
+  deleteBtn.addEventListener('click', (e) => { e.stopPropagation(); deleteTask(task.id); });
 
-  if (task.notes) {
-    const notesDisplay = document.createElement('div');
-    notesDisplay.className = 'task-notes-display visible';
-    notesDisplay.textContent = task.notes;
-    content.appendChild(notesDisplay);
-  }
+  const subBtn = item.querySelector('.subtasks-btn');
+  const subContainer = item.querySelector('.subtasks-container');
+  const subList = item.querySelector('.subtasks-list');
+  const subInput = item.querySelector('.add-subtask-input');
 
-  // Meta row (category + reminder)
-  const meta = document.createElement('div');
-  meta.className = 'task-meta';
-
-  const catObj = CATEGORIES.find(c => c.id === task.category) || CATEGORIES[5];
-  const catBadge = document.createElement('span');
-  catBadge.className = 'task-category-badge';
-  catBadge.textContent = `${catObj.icon} ${catObj.label}`;
-  meta.appendChild(catBadge);
-
-  const priority = task.priority || 'medium';
-  const priorityIcons = { high: '🔴', medium: '🟠', low: '🟢' };
-  const priorityBadge = document.createElement('span');
-  priorityBadge.className = `task-category-badge priority-${priority}`;
-  priorityBadge.textContent = `${priorityIcons[priority]} ${priority.charAt(0).toUpperCase() + priority.slice(1)}`;
-  meta.appendChild(priorityBadge);
-
-  if (task.recurrence && task.recurrence !== 'none') {
-    const recBadge = document.createElement('span');
-    recBadge.className = 'task-category-badge';
-    recBadge.innerHTML = `🔁 ${task.recurrence}`;
-    meta.appendChild(recBadge);
-  }
-
-  if (task.reminderTime) {
-    const reminderBadge = document.createElement('span');
-    reminderBadge.className = 'task-reminder-badge' + (isOverdue(task) ? ' overdue' : '');
-    reminderBadge.textContent = isOverdue(task) ? `⏰ Overdue` : `🔔 ${formatReminderTime(task.reminderTime)}`;
-    meta.appendChild(reminderBadge);
-  }
-
-  if (task.subtasks && task.subtasks.length > 0) {
-    const total = task.subtasks.length;
-    const completed = task.subtasks.filter(s => s.completed).length;
-    const progressBadge = document.createElement('span');
-    progressBadge.className = 'task-category-badge subtask-badge';
-    progressBadge.textContent = `📋 ${completed}/${total}`;
-    meta.appendChild(progressBadge);
-  }
-
-  content.appendChild(meta);
-
-  // Action buttons
-  const actions = document.createElement('div');
-  actions.className = 'task-actions';
-
-  // Edit button
-  const editBtn = document.createElement('button');
-  editBtn.className = 'task-action-btn task-edit-btn';
-  editBtn.id = 'edit-' + task.id;
-  editBtn.setAttribute('aria-label', 'Edit task');
-  editBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  editBtn.addEventListener('click', () => toggleEditMode(task));
-
-  // Delete button
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'task-action-btn task-delete-btn';
-  deleteBtn.id = 'del-' + task.id;
-  deleteBtn.setAttribute('aria-label', 'Delete task');
-  deleteBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>`;
-  deleteBtn.addEventListener('click', () => deleteTask(task.id));
-
-  // Subtasks toggle button
-  const subtasksBtn = document.createElement('button');
-  subtasksBtn.className = 'task-action-btn subtasks-btn';
-  subtasksBtn.setAttribute('aria-label', 'Toggle Subtasks');
-  subtasksBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-  subtasksBtn.addEventListener('click', () => {
-    const container = item.querySelector('.subtasks-container');
-    if (container) {
-      container.style.display = container.style.display === 'none' ? 'block' : 'none';
-      subtasksBtn.querySelector('polyline').setAttribute('points', container.style.display === 'none' ? "6 9 12 15 18 9" : "18 15 12 9 6 15");
-    }
+  subBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = subContainer.style.display === 'none';
+    subContainer.style.display = isHidden ? 'block' : 'none';
+    subBtn.querySelector('polyline').setAttribute('points', isHidden ? "18 15 12 9 6 15" : "6 9 12 15 18 9");
   });
 
-  actions.append(subtasksBtn, editBtn, deleteBtn);
-  
-  // Subtasks container
-  const subtasksContainer = document.createElement('div');
-  subtasksContainer.className = 'subtasks-container';
-  subtasksContainer.style.display = 'none';
-
-  const subtasksList = document.createElement('div');
-  subtasksList.className = 'subtasks-list';
   (task.subtasks || []).forEach(sub => {
     const subItem = document.createElement('div');
     subItem.className = 'subtask-item' + (sub.completed ? ' subtask-completed' : '');
-    
-    const subCb = document.createElement('input');
-    subCb.type = 'checkbox';
-    subCb.className = 'subtask-checkbox';
-    subCb.checked = sub.completed;
-    subCb.addEventListener('change', () => toggleSubtask(task.id, sub.id));
-    
-    const subText = document.createElement('span');
-    subText.className = 'subtask-text';
-    subText.textContent = sub.text;
-    
-    const subDel = document.createElement('button');
-    subDel.className = 'subtask-delete-btn';
-    subDel.innerHTML = '×';
-    subDel.addEventListener('click', () => deleteSubtask(task.id, sub.id));
-    
-    subItem.append(subCb, subText, subDel);
-    subtasksList.appendChild(subItem);
+    subItem.innerHTML = `
+      <input type="checkbox" class="subtask-checkbox" ${sub.completed ? 'checked' : ''}>
+      <span class="subtask-text">${sub.text}</span>
+      <button class="subtask-delete-btn">×</button>
+    `;
+    subItem.querySelector('.subtask-checkbox').addEventListener('change', () => toggleSubtask(task.id, sub.id));
+    subItem.querySelector('.subtask-delete-btn').addEventListener('click', () => deleteSubtask(task.id, sub.id));
+    subList.appendChild(subItem);
   });
 
-  const addSubDiv = document.createElement('div');
-  addSubDiv.className = 'add-subtask-div';
-  const subInput = document.createElement('input');
-  subInput.type = 'text';
-  subInput.className = 'add-subtask-input';
-  subInput.placeholder = 'Add subtask...';
   subInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && subInput.value.trim()) {
       e.preventDefault();
       addSubtask(task.id, subInput.value.trim());
     }
   });
-  addSubDiv.appendChild(subInput);
-  
-  subtasksContainer.append(subtasksList, addSubDiv);
-
-  item.append(checkbox, content, actions, subtasksContainer);
 
   // Drag and Drop
   item.draggable = true;
@@ -868,6 +938,7 @@ function createTaskElement(task) {
 
   return item;
 }
+
 
 // ============================================
 //  DRAG AND DROP HANDLERS
@@ -1085,8 +1156,21 @@ function toggleEditMode(task) {
 //  RENDER TASKS
 // ============================================
 function renderTasks() {
-  // Filter by active category
-  let filtered = activeCategory === 'all' ? tasks : tasks.filter(t => t.category === activeCategory);
+  const todayStr = new Date().toDateString();
+  const now = new Date();
+
+  // Filter by active category/view
+  let filtered = tasks;
+
+  if (activeCategory === 'today') {
+    filtered = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr);
+  } else if (activeCategory === 'upcoming') {
+    filtered = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime) > now);
+  } else if (activeCategory === 'completed') {
+    filtered = tasks.filter(t => t.completed);
+  } else if (activeCategory !== 'all') {
+    filtered = tasks.filter(t => t.category === activeCategory);
+  }
   
   // Filter by search query
   if (searchQuery) {
@@ -1109,9 +1193,15 @@ function renderTasks() {
     return oA - oB;
   });
 
-  const active = filtered.filter(t => !t.completed);
-  const completed = filtered.filter(t => t.completed);
-  const total = filtered.length;
+  // Decide what to show in sections
+  let active, completed;
+  if (activeCategory === 'completed') {
+    active = [];
+    completed = filtered;
+  } else {
+    active = filtered.filter(t => !t.completed);
+    completed = filtered.filter(t => t.completed);
+  }
 
   activeTaskList.innerHTML = '';
   completedTaskList.innerHTML = '';
@@ -1119,34 +1209,27 @@ function renderTasks() {
   active.forEach(t => activeTaskList.appendChild(createTaskElement(t)));
   completed.forEach(t => completedTaskList.appendChild(createTaskElement(t)));
 
-  activeEmptyEl.style.display = active.length === 0 ? 'flex' : 'none';
-  completedEmptyEl.style.display = completed.length === 0 ? 'flex' : 'none';
+  const activeEmptyEl = $('active-empty');
+  const completedEmptyEl = $('completed-empty');
+  if (activeEmptyEl) activeEmptyEl.style.display = active.length === 0 ? 'flex' : 'none';
+  if (completedEmptyEl) completedEmptyEl.style.display = completed.length === 0 ? 'flex' : 'none';
 
-  // Advanced Stats
+  // Stats
+  const totalTasks = tasks.length;
   const highTasks = tasks.filter(t => !t.completed && t.priority === 'high');
   const overdueTasks = tasks.filter(t => isOverdue(t));
-  const today = new Date().toDateString();
-  const todayTasks = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === today);
+  const todayTasks = tasks.filter(t => !t.completed && t.reminderTime && new Date(t.reminderTime).toDateString() === todayStr);
+  const completedCount = tasks.filter(t => t.completed).length;
   
-  const pct = total > 0 ? Math.round((completed.length / total) * 100) : 0;
+  const pct = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   
-  animateNumber(totalCountEl, parseInt(totalCountEl.textContent) || 0, total);
+  animateNumber(totalCountEl, parseInt(totalCountEl.textContent) || 0, totalTasks);
   animateNumber(highCountEl, parseInt(highCountEl.textContent) || 0, highTasks.length);
   animateNumber(overdueCountEl, parseInt(overdueCountEl.textContent) || 0, overdueTasks.length);
   animateNumber(todayCountEl, parseInt(todayCountEl.textContent) || 0, todayTasks.length);
   
   completedPercentEl.textContent = pct + '%';
-  activeSectionCount.textContent = active.length;
-  completedSectionCount.textContent = completed.length;
-
-  // Update Progress Ring
-  if (progressCircle) {
-    const radius = parseFloat(progressCircle.getAttribute('r'));
-    const circumference = 2 * Math.PI * radius;
-    progressCircle.style.strokeDasharray = circumference;
-    const offset = circumference - (pct / 100) * circumference;
-    progressCircle.style.strokeDashoffset = offset;
-  }
+  if (progressBarInner) progressBarInner.style.width = pct + '%';
 }
 
 function animateNumber(el, from, to) {
@@ -1170,18 +1253,9 @@ taskInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { e.preventDefault(); addTask(); }
 });
 
-if (searchInput) {
-  searchInput.addEventListener('input', (e) => {
+if (topSearchInput) {
+  topSearchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.trim();
-    searchClearBtn.style.display = searchQuery ? 'block' : 'none';
-    renderTasks();
-  });
-}
-if (searchClearBtn) {
-  searchClearBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    searchQuery = '';
-    searchClearBtn.style.display = 'none';
     renderTasks();
   });
 }
