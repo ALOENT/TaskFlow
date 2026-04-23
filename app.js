@@ -1141,8 +1141,9 @@ function renderTasks() {
 
   // Update Progress Ring
   if (progressCircle) {
-    const radius = progressCircle.r.baseVal.value;
+    const radius = parseFloat(progressCircle.getAttribute('r'));
     const circumference = 2 * Math.PI * radius;
+    progressCircle.style.strokeDasharray = circumference;
     const offset = circumference - (pct / 100) * circumference;
     progressCircle.style.strokeDashoffset = offset;
   }
