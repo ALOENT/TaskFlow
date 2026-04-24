@@ -1277,7 +1277,7 @@ function setupNoteUI(toggleBtn, containerEl, textareaEl, cancelBtn, doneBtn) {
   const openNote = () => {
     containerEl.style.display = 'block';
     toggleBtn.style.display = 'none';
-    textareaEl.focus();
+    if (textareaEl) textareaEl.focus();
   };
   
   const closeNote = () => {
@@ -1369,6 +1369,8 @@ async function addSheetTask() {
     ? sheetReminderPicker.selectedDates[0].toISOString() 
     : null;
 
+  const sheetNotes = sheetNotesInput && sheetNotesInput.value.trim() ? sheetNotesInput.value.trim() : '';
+
   sheetTaskInput.value = '';
   if (sheetNotesInput) {
     sheetNotesInput.value = '';
@@ -1388,7 +1390,7 @@ async function addSheetTask() {
   try {
     const taskData = {
       text: sanitize(text),
-      notes: sheetNotesInput && sheetNotesInput.value.trim() ? sanitize(sheetNotesInput.value.trim()) : '',
+      notes: sheetNotes ? sanitize(sheetNotes) : '',
       category,
       priority: sheetPriority ? sheetPriority.value : 'medium',
       subtasks: [],

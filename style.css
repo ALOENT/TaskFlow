@@ -90,7 +90,6 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .theme-toggle-btn:focus-visible{box-shadow:0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent)}
 
 /* UTILS */
-.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);border:0}
 
 /* LOADING */
 .loading-overlay{position:fixed;inset:0;background:var(--color-bg);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s,visibility .4s}
