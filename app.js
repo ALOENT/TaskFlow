@@ -517,10 +517,14 @@ const getFlatpickrConfig = (defaultDate = null) => ({
 });
 
 let mainReminderPicker = null;
+let sheetReminderPicker = null;
 
 // Initialize the main add-task reminder picker
 if (reminderInput) {
   mainReminderPicker = flatpickr(reminderInput, getFlatpickrConfig());
+}
+if (sheetReminder) {
+  sheetReminderPicker = flatpickr(sheetReminder, getFlatpickrConfig());
 }
 
 // ============================================
@@ -1224,6 +1228,13 @@ function renderTasks() {
   
   completedPercentEl.textContent = pct + '%';
   if (progressBarInner) progressBarInner.style.width = pct + '%';
+  
+  if (mobileProgCount) {
+    mobileProgCount.textContent = `${completedCount} of ${totalTasks} tasks`;
+  }
+  if (mobileProgFill) {
+    mobileProgFill.style.width = pct + '%';
+  }
 }
 
 function animateNumber(el, from, to) {
@@ -1259,6 +1270,115 @@ if (toggleNotesBtn) {
     toggleNotesBtn.style.display = 'none';
     taskNotesInput.style.display = 'block';
     taskNotesInput.focus();
+  });
+}
+
+// Mobile Sheet Notes Toggle
+if (sheetToggleNotes) {
+  sheetToggleNotes.addEventListener('click', () => {
+    sheetToggleNotes.style.display = 'none';
+    sheetNotesInput.style.display = 'block';
+    sheetNotesInput.focus();
+  });
+}
+
+// Mobile Sidebar Drawer
+if (menuBtn && sidebar && sidebarOverlay) {
+  const toggleSidebar = () => {
+    sidebar.classList.toggle('open');
+    sidebarOverlay.classList.toggle('active');
+  };
+  menuBtn.addEventListener('click', toggleSidebar);
+  sidebarOverlay.addEventListener('click', toggleSidebar);
+}
+
+// Mobile Bottom Sheet / FAB
+if (fabBtn && bottomSheet && sheetOverlay) {
+  const toggleSheet = () => {
+    bottomSheet.classList.toggle('active');
+    sheetOverlay.classList.toggle('active');
+  };
+  fabBtn.addEventListener('click', toggleSheet);
+  sheetOverlay.addEventListener('click', toggleSheet);
+  
+  // Sheet drag handle to close
+  const handle = bottomSheet.querySelector('.sheet-handle');
+  if (handle) {
+    handle.addEventListener('click', toggleSheet);
+    let startY = 0;
+    handle.addEventListener('touchstart', e => startY = e.touches[0].clientY, { passive: true });
+    handle.addEventListener('touchend', e => {
+      if (e.changedTouches[0].clientY > startY + 30) toggleSheet();
+    }, { passive: true });
+  }
+}
+
+// Add Task from Bottom Sheet
+async function addSheetTask() {
+  const text = sheetTaskInput.value.trim();
+  if (!text || !currentUser) {
+    if (!text) {
+      sheetTaskInput.classList.add('shake');
+      sheetTaskInput.focus();
+      setTimeout(() => sheetTaskInput.classList.remove('shake'), 400);
+    }
+    return;
+  }
+
+  const category = sheetCategory ? sheetCategory.value : 'other';
+  const reminderTime = sheetReminderPicker && sheetReminderPicker.selectedDates.length > 0 
+    ? sheetReminderPicker.selectedDates[0].toISOString() 
+    : null;
+
+  sheetTaskInput.value = '';
+  if (sheetNotesInput) {
+    sheetNotesInput.value = '';
+    sheetNotesInput.style.display = 'none';
+    if (sheetToggleNotes) sheetToggleNotes.style.display = 'block';
+  }
+  if (sheetReminderPicker) sheetReminderPicker.clear();
+  
+  if (bottomSheet) bottomSheet.classList.remove('active');
+  if (sheetOverlay) sheetOverlay.classList.remove('active');
+
+  try {
+    const taskData = {
+      text: sanitize(text),
+      notes: sheetNotesInput && sheetNotesInput.style.display !== 'none' ? sanitize(sheetNotesInput.value.trim()) : '',
+      category,
+      priority: sheetPriority ? sheetPriority.value : 'medium',
+      subtasks: [],
+      completed: false,
+      recurrence: sheetRecurrence ? sheetRecurrence.value : 'none',
+      reminderTime,
+      notificationId: null,
+      order: Date.now(),
+      createdAt: serverTimestamp()
+    };
+
+    const tasksRef = collection(db, 'users', currentUser.uid, 'tasks');
+    const docRef = await addDoc(tasksRef, taskData);
+
+    if (reminderTime) {
+      const notifId = await scheduleTaskReminder({ id: docRef.id, title: text, reminderTime });
+      if (notifId != null) {
+        await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
+      }
+    }
+  } catch (err) {
+    console.error('Error adding sheet task:', err);
+    sheetTaskInput.value = text;
+    sheetTaskInput.classList.add('shake');
+    setTimeout(() => sheetTaskInput.classList.remove('shake'), 400);
+  }
+}
+
+if (sheetAddTaskBtn) {
+  sheetAddTaskBtn.addEventListener('click', addSheetTask);
+}
+if (sheetTaskInput) {
+  sheetTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addSheetTask(); }
   });
 }
 
