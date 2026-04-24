@@ -844,29 +844,23 @@ function createTaskElement(task) {
   const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
   const isOverdueTask = isOverdue(task);
 
+  const prioLabel = (task.priority||'medium').charAt(0).toUpperCase()+(task.priority||'medium').slice(1);
+  const prioIcon = {high:'🔴',medium:'🟠',low:'🟢'}[task.priority||'medium'];
+
   item.innerHTML = `
     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
     <div class="task-content">
       <div class="task-text">${task.text}</div>
-      ${task.notes ? `<div class="task-notes-display visible">${task.notes}</div>` : ''}
       <div class="task-meta">
         <span class="task-category-badge">${cat.icon} ${cat.label}</span>
-        <span class="task-category-badge priority-${task.priority || 'medium'}">${{high:'🔴',medium:'🟠',low:'🟢'}[task.priority||'medium']} ${(task.priority||'medium').charAt(0).toUpperCase()+(task.priority||'medium').slice(1)}</span>
-        ${task.recurrence && task.recurrence !== 'none' ? `<span class="task-category-badge">🔁 ${task.recurrence}</span>` : ''}
+        <span class="task-category-badge priority-${task.priority || 'medium'}">${prioIcon} ${prioLabel}</span>
+        ${subtasksCount > 0 ? `<span class="task-category-badge subtask-badge">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
         ${task.reminderTime ? `<span class="task-reminder-badge${isOverdueTask ? ' overdue' : ''}">${isOverdueTask ? '⏰ Overdue' : '🔔 ' + formatReminderTime(task.reminderTime)}</span>` : ''}
-        ${subtasksCount > 0 ? `<span class="task-category-badge subtask-badge">📋 ${completedSubtasks}/${subtasksCount}</span>` : ''}
-      </div>
-      <div class="task-meta-mobile">
-        <span class="mobile-tag">${cat.icon} ${cat.label}</span>
-        ${task.reminderTime ? `<span class="mobile-tag ${isOverdueTask ? 'overdue' : ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> ${formatReminderTime(task.reminderTime)}</span>` : ''}
-        ${subtasksCount > 0 ? `<span class="subtask-pill">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
-      </div>
-      <div class="task-icons-row">
-        ${task.recurrence && task.recurrence !== 'none' ? '<span>🔁</span>' : ''}
-        ${task.notes ? '<span>📝</span>' : ''}
+        ${task.recurrence && task.recurrence !== 'none' ? '<span class="task-category-badge">🔁</span>' : ''}
+        ${task.notes ? '<span class="task-category-badge">📝</span>' : ''}
       </div>
     </div>
-    <div class="task-actions desktop-only">
+    <div class="task-actions">
       <button class="action-btn subtasks-btn" title="Toggle Subtasks">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>

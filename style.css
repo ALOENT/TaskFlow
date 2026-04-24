@@ -1083,20 +1083,21 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
   }
 
   .cat-badge {
-    display: none; /* Cleaner for pills */
+    display: none;
   }
 
-  /* Task Cards Redesign */
+  /* Task Cards — mobile priority left border */
   .task-item {
     display: flex;
-    flex-direction: column;
-    padding: 16px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 14px 16px;
     border-radius: var(--radius-md);
     background: var(--color-surface);
     border: 1px solid var(--color-border) !important;
     border-left-width: 4px !important;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 10px;
+    margin-bottom: 0;
     position: relative;
   }
 
@@ -1105,62 +1106,10 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
   .task-item[data-priority="low"] { border-left-color: #22c55e !important; }
   .task-item[data-priority="none"] { border-left-color: #e2e8f0 !important; }
 
-  .task-item .task-checkbox {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 24px;
-    height: 24px;
-    margin: 0;
-  }
-
-  .task-item .task-content {
-    margin: 0;
-    padding-right: 32px;
-  }
-
-  .task-item .task-text {
-    font-size: 1.05rem;
-    font-weight: 700;
-  }
-
-  .task-meta-mobile {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .mobile-tag {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 4px 8px;
-    background: var(--color-bg);
-    border-radius: 6px;
-    color: var(--color-text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .subtask-pill {
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 4px 8px;
-    background: var(--color-accent-light);
-    color: var(--color-accent);
-    border-radius: 12px;
-  }
-
-  .task-icons-row {
-    display: flex;
-    gap: 12px;
-    color: var(--color-text-muted);
-  }
-
-  /* Hide old actions on mobile, maybe use swipe later */
+  /* Task actions always visible on mobile */
   .task-actions {
-    display: none;
+    opacity: 1 !important;
+    display: flex;
   }
 
   .fab-btn {
@@ -1168,10 +1117,10 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
   }
 
   .add-task-floating {
-    display: none; /* Use FAB instead */
+    display: none;
   }
 
-  /* Bottom Nav Update */
+  /* Bottom Nav */
   .bottom-nav {
     display: flex;
     height: 64px;
@@ -1204,7 +1153,7 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
   .bottom-nav-label {
     font-size: 0.7rem;
     font-weight: 700;
-    display: none; /* Hide label for inactive */
+    display: none;
   }
 
   .bottom-nav-item.active .bottom-nav-label {
@@ -1215,24 +1164,4 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
     width: 24px;
     height: 24px;
   }
-}
-
-/* Note: slideIn is defined earlier in the file — this duplicate is removed */
-
-.task-item {
-  animation: slideIn 0.3s ease-out;
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-subtle);
-  margin-bottom: 12px;
-}
-
-.task-item:hover {
-  border-color: var(--color-accent);
-}
-
-.task-section .section-title {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-text-secondary);
-  margin-bottom: 16px;
 }
