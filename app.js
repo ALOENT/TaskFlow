@@ -517,10 +517,14 @@ const getFlatpickrConfig = (defaultDate = null) => ({
 });
 
 let mainReminderPicker = null;
+let sheetReminderPicker = null;
 
 // Initialize the main add-task reminder picker
 if (reminderInput) {
   mainReminderPicker = flatpickr(reminderInput, getFlatpickrConfig());
+}
+if (sheetReminder) {
+  sheetReminderPicker = flatpickr(sheetReminder, getFlatpickrConfig());
 }
 
 // ============================================
@@ -573,8 +577,13 @@ async function addTask() {
   taskInput.value = '';
   if (taskNotesInput) {
     taskNotesInput.value = '';
-    taskNotesInput.style.display = 'none';
-    if (toggleNotesBtn) toggleNotesBtn.style.display = 'block';
+    const noteUI = document.getElementById('note-ui-container');
+    if (noteUI) noteUI.style.display = 'none';
+    if (toggleNotesBtn) {
+      toggleNotesBtn.style.display = 'inline-block';
+      toggleNotesBtn.innerHTML = '📝 Add Note';
+      toggleNotesBtn.classList.remove('has-note');
+    }
   }
   if (mainReminderPicker) mainReminderPicker.clear();
   taskInput.focus();
@@ -583,7 +592,7 @@ async function addTask() {
     // Prepare task data
     const taskData = {
       text: sanitize(text),
-      notes: taskNotesInput && taskNotesInput.style.display !== 'none' ? sanitize(taskNotesInput.value.trim()) : '',
+      notes: taskNotesInput && taskNotesInput.value.trim() ? sanitize(taskNotesInput.value.trim()) : '',
       category,
       priority: prioritySelect ? prioritySelect.value : 'medium',
       subtasks: [],
@@ -844,29 +853,23 @@ function createTaskElement(task) {
   const completedSubtasks = task.subtasks ? task.subtasks.filter(s => s.completed).length : 0;
   const isOverdueTask = isOverdue(task);
 
+  const prioLabel = (task.priority||'medium').charAt(0).toUpperCase()+(task.priority||'medium').slice(1);
+  const prioIcon = {high:'🔴',medium:'🟠',low:'🟢'}[task.priority||'medium'];
+
   item.innerHTML = `
     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
     <div class="task-content">
       <div class="task-text">${task.text}</div>
-      ${task.notes ? `<div class="task-notes-display visible">${task.notes}</div>` : ''}
       <div class="task-meta">
         <span class="task-category-badge">${cat.icon} ${cat.label}</span>
-        <span class="task-category-badge priority-${task.priority || 'medium'}">${{high:'🔴',medium:'🟠',low:'🟢'}[task.priority||'medium']} ${(task.priority||'medium').charAt(0).toUpperCase()+(task.priority||'medium').slice(1)}</span>
-        ${task.recurrence && task.recurrence !== 'none' ? `<span class="task-category-badge">🔁 ${task.recurrence}</span>` : ''}
+        <span class="task-category-badge priority-${task.priority || 'medium'}">${prioIcon} ${prioLabel}</span>
+        ${subtasksCount > 0 ? `<span class="task-category-badge subtask-badge">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
         ${task.reminderTime ? `<span class="task-reminder-badge${isOverdueTask ? ' overdue' : ''}">${isOverdueTask ? '⏰ Overdue' : '🔔 ' + formatReminderTime(task.reminderTime)}</span>` : ''}
-        ${subtasksCount > 0 ? `<span class="task-category-badge subtask-badge">📋 ${completedSubtasks}/${subtasksCount}</span>` : ''}
-      </div>
-      <div class="task-meta-mobile">
-        <span class="mobile-tag">${cat.icon} ${cat.label}</span>
-        ${task.reminderTime ? `<span class="mobile-tag ${isOverdueTask ? 'overdue' : ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg> ${formatReminderTime(task.reminderTime)}</span>` : ''}
-        ${subtasksCount > 0 ? `<span class="subtask-pill">${completedSubtasks}/${subtasksCount} subtasks</span>` : ''}
-      </div>
-      <div class="task-icons-row">
-        ${task.recurrence && task.recurrence !== 'none' ? '<span>🔁</span>' : ''}
-        ${task.notes ? '<span>📝</span>' : ''}
+        ${task.recurrence && task.recurrence !== 'none' ? '<span class="task-category-badge">🔁</span>' : ''}
+        ${task.notes ? '<span class="task-category-badge">📝</span>' : ''}
       </div>
     </div>
-    <div class="task-actions desktop-only">
+    <div class="task-actions">
       <button class="action-btn subtasks-btn" title="Toggle Subtasks">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
@@ -1230,6 +1233,13 @@ function renderTasks() {
   
   completedPercentEl.textContent = pct + '%';
   if (progressBarInner) progressBarInner.style.width = pct + '%';
+  
+  if (mobileProgCount) {
+    mobileProgCount.textContent = `${completedCount} of ${totalTasks} tasks`;
+  }
+  if (mobileProgFill) {
+    mobileProgFill.style.width = pct + '%';
+  }
 }
 
 function animateNumber(el, from, to) {
@@ -1260,11 +1270,230 @@ if (topSearchInput) {
   });
 }
 
-if (toggleNotesBtn) {
-  toggleNotesBtn.addEventListener('click', () => {
-    toggleNotesBtn.style.display = 'none';
-    taskNotesInput.style.display = 'block';
-    taskNotesInput.focus();
+// Note UI Setup
+function setupNoteUI(toggleBtn, containerEl, textareaEl, cancelBtn, doneBtn) {
+  if (!toggleBtn || !containerEl) return;
+  
+  const openNote = () => {
+    containerEl.style.display = 'block';
+    toggleBtn.style.display = 'none';
+    if (textareaEl) textareaEl.focus();
+  };
+  
+  const closeNote = () => {
+    containerEl.style.display = 'none';
+    toggleBtn.style.display = 'inline-block';
+    if (textareaEl.value.trim() !== '') {
+      toggleBtn.innerHTML = '📝 Note added';
+      toggleBtn.classList.add('has-note');
+    } else {
+      toggleBtn.innerHTML = '📝 Add Note';
+      toggleBtn.classList.remove('has-note');
+    }
+  };
+
+  toggleBtn.addEventListener('click', openNote);
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      textareaEl.value = '';
+      closeNote();
+    });
+  }
+  if (doneBtn) {
+    doneBtn.addEventListener('click', closeNote);
+  }
+}
+
+setupNoteUI(
+  toggleNotesBtn,
+  document.getElementById('note-ui-container'),
+  taskNotesInput,
+  document.getElementById('note-cancel-btn'),
+  document.getElementById('note-done-btn')
+);
+
+setupNoteUI(
+  sheetToggleNotes,
+  document.getElementById('sheet-note-ui-container'),
+  sheetNotesInput,
+  document.getElementById('sheet-note-cancel-btn'),
+  document.getElementById('sheet-note-done-btn')
+);
+
+// Mobile Sidebar Drawer
+if (menuBtn && sidebar && sidebarOverlay) {
+  const toggleSidebar = () => {
+    sidebar.classList.toggle('open');
+    sidebarOverlay.classList.toggle('active');
+  };
+  menuBtn.addEventListener('click', toggleSidebar);
+  sidebarOverlay.addEventListener('click', toggleSidebar);
+}
+
+// Mobile Bottom Sheet / FAB
+if (fabBtn && bottomSheet && sheetOverlay) {
+  const toggleSheet = () => {
+    bottomSheet.classList.toggle('active');
+    sheetOverlay.classList.toggle('active');
+  };
+  fabBtn.addEventListener('click', toggleSheet);
+  sheetOverlay.addEventListener('click', toggleSheet);
+  
+  // Sheet drag handle to close
+  const handle = bottomSheet.querySelector('.sheet-handle');
+  if (handle) {
+    handle.addEventListener('click', toggleSheet);
+    let startY = 0;
+    handle.addEventListener('touchstart', e => startY = e.touches[0].clientY, { passive: true });
+    handle.addEventListener('touchend', e => {
+      if (e.changedTouches[0].clientY > startY + 30) toggleSheet();
+    }, { passive: true });
+  }
+}
+
+// Add Task from Bottom Sheet
+async function addSheetTask() {
+  const text = sheetTaskInput.value.trim();
+  if (!text || !currentUser) {
+    if (!text) {
+      sheetTaskInput.classList.add('shake');
+      sheetTaskInput.focus();
+      setTimeout(() => sheetTaskInput.classList.remove('shake'), 400);
+    }
+    return;
+  }
+
+  const category = sheetCategory ? sheetCategory.value : 'other';
+  const reminderTime = sheetReminderPicker && sheetReminderPicker.selectedDates.length > 0 
+    ? sheetReminderPicker.selectedDates[0].toISOString() 
+    : null;
+
+  const sheetNotes = sheetNotesInput && sheetNotesInput.value.trim() ? sheetNotesInput.value.trim() : '';
+
+  sheetTaskInput.value = '';
+  if (sheetNotesInput) {
+    sheetNotesInput.value = '';
+    const sheetNoteUI = document.getElementById('sheet-note-ui-container');
+    if (sheetNoteUI) sheetNoteUI.style.display = 'none';
+    if (sheetToggleNotes) {
+      sheetToggleNotes.style.display = 'inline-block';
+      sheetToggleNotes.innerHTML = '📝 Add Note';
+      sheetToggleNotes.classList.remove('has-note');
+    }
+  }
+  if (sheetReminderPicker) sheetReminderPicker.clear();
+  
+  if (bottomSheet) bottomSheet.classList.remove('active');
+  if (sheetOverlay) sheetOverlay.classList.remove('active');
+
+  try {
+    const taskData = {
+      text: sanitize(text),
+      notes: sheetNotes ? sanitize(sheetNotes) : '',
+      category,
+      priority: sheetPriority ? sheetPriority.value : 'medium',
+      subtasks: [],
+      completed: false,
+      recurrence: sheetRecurrence ? sheetRecurrence.value : 'none',
+      reminderTime,
+      notificationId: null,
+      order: Date.now(),
+      createdAt: serverTimestamp()
+    };
+
+    const tasksRef = collection(db, 'users', currentUser.uid, 'tasks');
+    const docRef = await addDoc(tasksRef, taskData);
+
+    if (reminderTime) {
+      const notifId = await scheduleTaskReminder({ id: docRef.id, title: text, reminderTime });
+      if (notifId != null) {
+        await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
+      }
+    }
+  } catch (err) {
+    console.error('Error adding sheet task:', err);
+    sheetTaskInput.value = text;
+    sheetTaskInput.classList.add('shake');
+    setTimeout(() => sheetTaskInput.classList.remove('shake'), 400);
+  }
+}
+
+if (sheetAddTaskBtn) {
+  sheetAddTaskBtn.addEventListener('click', addSheetTask);
+}
+if (sheetTaskInput) {
+  sheetTaskInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); addSheetTask(); }
   });
 }
+
+// Custom Dropdown Builder
+function buildCustomDropdown(selectId) {
+  const selectEl = document.getElementById(selectId);
+  if (!selectEl) return;
+
+  const container = document.createElement('div');
+  container.className = 'custom-dropdown-container';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'custom-dropdown-trigger';
+  trigger.innerHTML = `
+    <span class="trigger-label">${selectEl.options[selectEl.selectedIndex].text}</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  `;
+
+  const menu = document.createElement('ul');
+  menu.className = 'custom-dropdown-menu';
+  
+  const options = Array.from(selectEl.options);
+  options.forEach((opt, idx) => {
+    const li = document.createElement('li');
+    li.className = 'custom-dropdown-option' + (opt.selected ? ' selected' : '');
+    li.dataset.value = opt.value;
+    li.innerHTML = `
+      ${opt.text}
+      <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    `;
+    li.addEventListener('click', () => {
+      selectEl.selectedIndex = idx;
+      trigger.querySelector('.trigger-label').textContent = opt.text;
+      menu.querySelectorAll('.custom-dropdown-option').forEach(item => item.classList.remove('selected'));
+      li.classList.add('selected');
+      closeMenu();
+      selectEl.dispatchEvent(new Event('change'));
+    });
+    menu.appendChild(li);
+  });
+
+  const openMenu = (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.custom-dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    menu.classList.add('open');
+  };
+
+  const closeMenu = () => {
+    menu.classList.remove('open');
+  };
+
+  trigger.addEventListener('click', (e) => {
+    if (menu.classList.contains('open')) closeMenu();
+    else openMenu(e);
+  });
+
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  selectEl.style.display = 'none';
+  selectEl.parentNode.insertBefore(container, selectEl);
+  container.appendChild(selectEl);
+  container.appendChild(trigger);
+  container.appendChild(menu);
+}
+
+buildCustomDropdown('recurrence-select');
+buildCustomDropdown('sheet-recurrence-select');
 
