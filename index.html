@@ -319,9 +319,15 @@
               </select>
               <button id="toggle-notes-btn" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
             </div>
-            <textarea id="task-notes-input" placeholder="Add notes (optional)..." rows="2" style="display:none;" aria-label="Task notes"></textarea>
+              <div class="note-ui-container" id="note-ui-container" style="display:none;">
+                <textarea id="task-notes-input" class="note-textarea" placeholder="Add a note to this task..." aria-label="Task notes"></textarea>
+                <div class="note-actions">
+                  <button id="note-cancel-btn" class="note-btn cancel-btn">Cancel</button>
+                  <button id="note-done-btn" class="note-btn done-btn">Done</button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
         <!-- Mobile FAB -->
         <button class="fab-btn" id="fab-btn" aria-label="Add Task">
@@ -377,8 +383,13 @@
 
               <div class="sheet-notes-section">
                 <button id="sheet-toggle-notes" class="text-btn" aria-label="Toggle notes" aria-expanded="false">📝 Add Note</button>
-                <label for="sheet-notes-input" class="visually-hidden">Notes</label>
-                <textarea id="sheet-notes-input" placeholder="Add more details..." rows="3" style="display:none;"></textarea>
+                <div class="note-ui-container" id="sheet-note-ui-container" style="display:none;">
+                  <textarea id="sheet-notes-input" class="note-textarea" placeholder="Add a note to this task..." aria-label="Task notes"></textarea>
+                  <div class="note-actions">
+                    <button id="sheet-note-cancel-btn" class="note-btn cancel-btn">Cancel</button>
+                    <button id="sheet-note-done-btn" class="note-btn done-btn">Done</button>
+                  </div>
+                </div>
               </div>
 
               <button id="sheet-add-task-btn" class="primary-btn full-width">Add Task</button>

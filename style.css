@@ -711,14 +711,16 @@ body{font-family:var(--font);background:var(--color-bg);color:var(--color-text-p
 .task-reminder-badge.overdue{color:var(--color-danger);background:var(--color-danger-bg);font-weight:700}
 
 /* Task actions */
-.task-actions{display:flex;gap:4px;flex-shrink:0;opacity:0;transition:opacity var(--transition-fast)}
-.task-item:hover .task-actions, .task-item:focus-within .task-actions{opacity:1}
-.task-action-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:var(--radius-sm);color:var(--color-text-muted);transition:color var(--transition-fast),background var(--transition-fast);display:flex;align-items:center;justify-content:center;min-width:36px;min-height:36px}
-.task-edit-btn:hover{color:var(--color-accent);background:var(--color-accent-light)}
-.task-delete-btn:hover{color:var(--color-danger);background:var(--color-danger-bg)}
+.task-actions{display:flex;gap:6px;flex-shrink:0;opacity:0;transition:opacity 0.2s ease;margin-left:auto;}
+.task-item:hover .task-actions, .task-item:focus-within .task-actions{opacity:1;}
+.action-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;color:var(--color-text-muted);transition:all 0.2s ease;display:flex;align-items:center;justify-content:center;width:32px;height:32px;}
+.action-btn.edit-btn:hover{color:var(--color-accent);background:rgba(37,99,235,0.1);}
+.action-btn.delete-btn{color:#ef4444;}
+.action-btn.delete-btn:hover{background:rgba(239,68,68,0.1);}
+.action-btn.subtasks-btn svg{transition: transform 0.2s ease;}
+.action-btn.subtasks-btn.active svg{transform:rotate(180deg);}
 
 /* SUBTASKS */
-.subtasks-btn.active svg{transform:rotate(180deg)}
 .subtasks-container{width:100%;margin-top:12px;padding-top:12px;border-top:1px dashed var(--color-border)}
 .subtasks-list{display:flex;flex-direction:column;gap:6px}
 .subtask-item{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--radius-sm);background:var(--color-bg);transition:opacity 0.2s}
@@ -1164,4 +1166,186 @@ span.flatpickr-weekday { color: var(--color-text-muted); font-weight: 600; font-
     width: 24px;
     height: 24px;
   }
+}
+
+/* Note UI Container */
+.note-ui-container {
+  width: 100%;
+  margin-top: 12px;
+  animation: expandNote 0.2s ease forwards;
+  overflow: hidden;
+}
+@keyframes expandNote {
+  from { max-height: 0; opacity: 0; }
+  to { max-height: 150px; opacity: 1; }
+}
+.note-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 10px 14px;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  outline: none;
+  resize: none;
+  transition: border-color 0.2s;
+}
+.note-textarea:focus {
+  border-color: var(--color-accent);
+}
+.note-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.note-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+.note-btn.cancel-btn {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+.note-btn.cancel-btn:hover {
+  background: var(--color-border);
+}
+.note-btn.done-btn {
+  background: var(--color-accent);
+  color: white;
+}
+.note-btn.done-btn:hover {
+  background: var(--color-accent-hover);
+}
+
+/* FLATPICKR STYLING */
+.flatpickr-calendar {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-lg) !important;
+  animation: fadeScale 0.15s ease forwards;
+  padding-bottom: 10px;
+}
+@keyframes fadeScale {
+  from { opacity: 0; transform: scale(0.95) translateY(-5px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.flatpickr-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 8px 14px 0;
+  border-top: 1px solid var(--color-border);
+  margin-top: 8px;
+}
+.flatpickr-cancel-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  transition: background 0.15s ease;
+}
+.flatpickr-cancel-btn:hover { background: var(--color-border); }
+.flatpickr-confirm-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  transition: background 0.15s ease;
+}
+.flatpickr-confirm-btn:hover { background: var(--color-accent-hover); }
+
+/* CUSTOM DROPDOWN UI */
+.custom-dropdown-container {
+  position: relative;
+  display: inline-block;
+  width: 130px;
+}
+.custom-dropdown-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.custom-dropdown-trigger:hover {
+  background: var(--color-bg);
+}
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max-content;
+  min-width: 140px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  list-style: none;
+  padding: 8px;
+  margin: 0;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-5px);
+  transition: all 0.15s ease;
+}
+.custom-dropdown-menu.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.custom-dropdown-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 40px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.custom-dropdown-option:hover {
+  background: rgba(37,99,235,0.08);
+  color: var(--color-accent);
+}
+.custom-dropdown-option .check-icon {
+  display: none;
+  color: var(--color-accent);
+}
+.custom-dropdown-option.selected {
+  background: rgba(37,99,235,0.08);
+  color: var(--color-accent);
+}
+.custom-dropdown-option.selected .check-icon {
+  display: block;
 }

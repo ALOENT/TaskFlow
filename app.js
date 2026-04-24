@@ -577,8 +577,13 @@ async function addTask() {
   taskInput.value = '';
   if (taskNotesInput) {
     taskNotesInput.value = '';
-    taskNotesInput.style.display = 'none';
-    if (toggleNotesBtn) toggleNotesBtn.style.display = 'block';
+    const noteUI = document.getElementById('note-ui-container');
+    if (noteUI) noteUI.style.display = 'none';
+    if (toggleNotesBtn) {
+      toggleNotesBtn.style.display = 'inline-block';
+      toggleNotesBtn.innerHTML = '📝 Add Note';
+      toggleNotesBtn.classList.remove('has-note');
+    }
   }
   if (mainReminderPicker) mainReminderPicker.clear();
   taskInput.focus();
@@ -587,7 +592,7 @@ async function addTask() {
     // Prepare task data
     const taskData = {
       text: sanitize(text),
-      notes: taskNotesInput && taskNotesInput.style.display !== 'none' ? sanitize(taskNotesInput.value.trim()) : '',
+      notes: taskNotesInput && taskNotesInput.value.trim() ? sanitize(taskNotesInput.value.trim()) : '',
       category,
       priority: prioritySelect ? prioritySelect.value : 'medium',
       subtasks: [],
@@ -1265,22 +1270,56 @@ if (topSearchInput) {
   });
 }
 
-if (toggleNotesBtn) {
-  toggleNotesBtn.addEventListener('click', () => {
-    toggleNotesBtn.style.display = 'none';
-    taskNotesInput.style.display = 'block';
-    taskNotesInput.focus();
-  });
+// Note UI Setup
+function setupNoteUI(toggleBtn, containerEl, textareaEl, cancelBtn, doneBtn) {
+  if (!toggleBtn || !containerEl) return;
+  
+  const openNote = () => {
+    containerEl.style.display = 'block';
+    toggleBtn.style.display = 'none';
+    textareaEl.focus();
+  };
+  
+  const closeNote = () => {
+    containerEl.style.display = 'none';
+    toggleBtn.style.display = 'inline-block';
+    if (textareaEl.value.trim() !== '') {
+      toggleBtn.innerHTML = '📝 Note added';
+      toggleBtn.classList.add('has-note');
+    } else {
+      toggleBtn.innerHTML = '📝 Add Note';
+      toggleBtn.classList.remove('has-note');
+    }
+  };
+
+  toggleBtn.addEventListener('click', openNote);
+  
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      textareaEl.value = '';
+      closeNote();
+    });
+  }
+  if (doneBtn) {
+    doneBtn.addEventListener('click', closeNote);
+  }
 }
 
-// Mobile Sheet Notes Toggle
-if (sheetToggleNotes) {
-  sheetToggleNotes.addEventListener('click', () => {
-    sheetToggleNotes.style.display = 'none';
-    sheetNotesInput.style.display = 'block';
-    sheetNotesInput.focus();
-  });
-}
+setupNoteUI(
+  toggleNotesBtn,
+  document.getElementById('note-ui-container'),
+  taskNotesInput,
+  document.getElementById('note-cancel-btn'),
+  document.getElementById('note-done-btn')
+);
+
+setupNoteUI(
+  sheetToggleNotes,
+  document.getElementById('sheet-note-ui-container'),
+  sheetNotesInput,
+  document.getElementById('sheet-note-cancel-btn'),
+  document.getElementById('sheet-note-done-btn')
+);
 
 // Mobile Sidebar Drawer
 if (menuBtn && sidebar && sidebarOverlay) {
@@ -1333,8 +1372,13 @@ async function addSheetTask() {
   sheetTaskInput.value = '';
   if (sheetNotesInput) {
     sheetNotesInput.value = '';
-    sheetNotesInput.style.display = 'none';
-    if (sheetToggleNotes) sheetToggleNotes.style.display = 'block';
+    const sheetNoteUI = document.getElementById('sheet-note-ui-container');
+    if (sheetNoteUI) sheetNoteUI.style.display = 'none';
+    if (sheetToggleNotes) {
+      sheetToggleNotes.style.display = 'inline-block';
+      sheetToggleNotes.innerHTML = '📝 Add Note';
+      sheetToggleNotes.classList.remove('has-note');
+    }
   }
   if (sheetReminderPicker) sheetReminderPicker.clear();
   
@@ -1344,7 +1388,7 @@ async function addSheetTask() {
   try {
     const taskData = {
       text: sanitize(text),
-      notes: sheetNotesInput && sheetNotesInput.style.display !== 'none' ? sanitize(sheetNotesInput.value.trim()) : '',
+      notes: sheetNotesInput && sheetNotesInput.value.trim() ? sanitize(sheetNotesInput.value.trim()) : '',
       category,
       priority: sheetPriority ? sheetPriority.value : 'medium',
       subtasks: [],
@@ -1381,4 +1425,73 @@ if (sheetTaskInput) {
     if (e.key === 'Enter') { e.preventDefault(); addSheetTask(); }
   });
 }
+
+// Custom Dropdown Builder
+function buildCustomDropdown(selectId) {
+  const selectEl = document.getElementById(selectId);
+  if (!selectEl) return;
+
+  const container = document.createElement('div');
+  container.className = 'custom-dropdown-container';
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'custom-dropdown-trigger';
+  trigger.innerHTML = `
+    <span class="trigger-label">${selectEl.options[selectEl.selectedIndex].text}</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+  `;
+
+  const menu = document.createElement('ul');
+  menu.className = 'custom-dropdown-menu';
+  
+  const options = Array.from(selectEl.options);
+  options.forEach((opt, idx) => {
+    const li = document.createElement('li');
+    li.className = 'custom-dropdown-option' + (opt.selected ? ' selected' : '');
+    li.dataset.value = opt.value;
+    li.innerHTML = `
+      ${opt.text}
+      <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    `;
+    li.addEventListener('click', () => {
+      selectEl.selectedIndex = idx;
+      trigger.querySelector('.trigger-label').textContent = opt.text;
+      menu.querySelectorAll('.custom-dropdown-option').forEach(item => item.classList.remove('selected'));
+      li.classList.add('selected');
+      closeMenu();
+      selectEl.dispatchEvent(new Event('change'));
+    });
+    menu.appendChild(li);
+  });
+
+  const openMenu = (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.custom-dropdown-menu.open').forEach(m => m.classList.remove('open'));
+    menu.classList.add('open');
+  };
+
+  const closeMenu = () => {
+    menu.classList.remove('open');
+  };
+
+  trigger.addEventListener('click', (e) => {
+    if (menu.classList.contains('open')) closeMenu();
+    else openMenu(e);
+  });
+
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  selectEl.style.display = 'none';
+  selectEl.parentNode.insertBefore(container, selectEl);
+  container.appendChild(selectEl);
+  container.appendChild(trigger);
+  container.appendChild(menu);
+}
+
+buildCustomDropdown('recurrence-select');
+buildCustomDropdown('sheet-recurrence-select');
 
