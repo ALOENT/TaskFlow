@@ -1658,12 +1658,37 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   font-size: 2rem;
   font-weight: 700;
   overflow: hidden;
+  position: relative;
 }
 
 .profile-avatar-large img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.avatar-spinner {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.avatar-spinner::after {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .avatar-overlay {
@@ -1678,65 +1703,37 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   opacity: 0;
   cursor: pointer;
   transition: opacity 0.2s;
+  z-index: 2;
 }
 
 .avatar-upload-container:hover .avatar-overlay {
   opacity: 1;
 }
 
-.upload-progress-bar {
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  overflow: hidden;
-  display: none;
-}
-
-.upload-progress-fill {
-  height: 100%;
-  background: var(--color-accent);
-  width: 0%;
-  transition: width 0.2s;
-}
-
-.profile-info {
-  flex: 1;
-}
-
-.profile-row {
+/* Skeleton Loading */
+.skeleton-dots {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.profile-row label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.profile-input-group {
-  display: flex;
-  gap: 12px;
+  gap: 4px;
+  justify-content: center;
   align-items: center;
+  height: 1.5rem;
 }
 
-.profile-input-group .form-input {
-  flex: 1;
+.skeleton-dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--color-text-muted);
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: dotPulse 1.4s infinite;
 }
 
-.profile-row .read-only-val {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.9375rem;
-  color: var(--color-text-primary);
-  padding: 11px 0;
+.skeleton-dots span:nth-child(2) { animation-delay: 0.2s; }
+.skeleton-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.3); opacity: 0.8; }
 }
 
 .stats-row {
