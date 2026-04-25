@@ -2,9 +2,9 @@
    TaskFlow — Full Design System
    ============================================ */
 :root {
-  --color-bg: #f1f5f9;
-  --color-surface: #ffffff;
-  --color-sidebar: #ffffff;
+  --color-bg: #e8edf2;
+  --color-surface: #f8fafc;
+  --color-sidebar: #f4f7fa;
   --color-border: #e2e8f0;
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
@@ -22,9 +22,9 @@
   --color-success-bg: #f0fdf4;
   --color-success-light: #dcfce7;
   
-  --color-user-bg: #f8fafc;
-  --color-nav-hover: #f8fafc;
-  --color-search-bg: #f8fafc;
+  --color-user-bg: #f4f7fa;
+  --color-nav-hover: #eef2f6;
+  --color-search-bg: #eef2f6;
   --color-btn-secondary: #f1f5f9;
   --color-btn-secondary-hover: #e2e8f0;
   
@@ -147,15 +147,15 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .auth-sub{font-size:.9rem;color:var(--color-text-secondary);margin-bottom:24px}
 .auth-tabs{display:flex;background:var(--color-bg);border-radius:var(--radius-md);padding:4px;gap:4px;margin-bottom:24px}
 .auth-tab{flex:1;padding:10px 14px;font-size:.875rem;font-weight:700;font-family:var(--font);color:var(--color-text-secondary);background:transparent;border:none;border-radius:var(--radius-md);cursor:pointer;transition:all var(--transition-fast)}
-.auth-tab.active{background:var(--color-surface);color:var(--color-accent);box-shadow:var(--shadow-sm)}
-.google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;font-size:.9375rem;font-weight:600;font-family:var(--font);color:var(--color-text-primary);background:var(--color-surface);border:1.5px solid var(--color-border);border-radius:var(--radius-md);cursor:pointer;transition:background var(--transition-fast),border-color var(--transition-fast);margin-bottom:20px}
+.auth-tab.active{background:var(--color-search-bg);color:var(--color-accent);box-shadow:var(--shadow-sm)}
+.google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;font-size:.9375rem;font-weight:600;font-family:var(--font);color:var(--color-text-primary);background:var(--color-search-bg);border:1.5px solid var(--color-border);border-radius:var(--radius-md);cursor:pointer;transition:background var(--transition-fast),border-color var(--transition-fast);margin-bottom:20px}
 .google-btn:hover{background:#f8f9ff;border-color:#c7d2fe}
 .auth-divider{position:relative;text-align:center;margin-bottom:20px}
 .auth-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--color-border)}
 .auth-divider span{position:relative;background:var(--color-surface);padding:0 12px;font-size:.8rem;color:var(--color-text-muted);font-weight:500}
 .form-group{margin-bottom:16px}
 .form-group label{display:block;font-size:.8375rem;font-weight:600;margin-bottom:6px}
-.form-input{width:100%;padding:11px 14px;font-size:16px;font-family:var(--font);color:var(--color-text-primary);background:var(--color-surface);border:1.5px solid var(--color-border);border-radius:var(--radius-md);outline:none;transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}
+.form-input{width:100%;padding:11px 14px;font-size:16px;font-family:var(--font);color:var(--color-text-primary);background:var(--color-search-bg);border:1.5px solid var(--color-border);border-radius:var(--radius-md);outline:none;transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}
 .form-input::placeholder{color:var(--color-text-muted)}
 .form-input:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .password-wrapper{position:relative}
@@ -431,7 +431,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   padding: 0 16px;
   align-items: center;
   justify-content: space-between;
-  background: var(--color-surface);
+  background: var(--color-sidebar);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
@@ -495,7 +495,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  background: var(--color-sidebar);
   transition: background 0.3s ease;
 }
 
@@ -532,7 +532,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .search-box input {
   width: 100%;
   padding: 10px 12px 10px 38px;
-  background: var(--color-bg);
+  background: var(--color-search-bg);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: var(--font);
@@ -768,7 +768,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   color: var(--color-accent);
 }
 .add-task-btn:hover{background:var(--color-accent-hover)}
-.task-notes-input{width:100%;margin-top:8px;padding:10px 14px;font-size:0.9rem;font-family:var(--font);border:1px solid #cbd5e1;border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text-primary);outline:none;resize:vertical;transition:all 0.2s ease}
+.task-notes-input{width:100%;margin-top:8px;padding:10px 14px;font-size:0.9rem;font-family:var(--font);border:1px solid #cbd5e1;border-radius:var(--radius-md);background:var(--color-search-bg);color:var(--color-text-primary);outline:none;resize:vertical;transition:all 0.2s ease}
 .task-notes-input:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
 [data-theme="dark"] .task-notes-input{border-color:var(--color-border)}
 .toggle-notes-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:0.8rem;margin-top:6px;align-self:flex-start}
@@ -781,7 +781,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   font-family:var(--font);
   border:1px solid var(--color-border);
   border-radius:var(--radius-md);
-  background:var(--color-surface);
+  background:var(--color-search-bg);
   color:var(--color-text-primary);
   outline:none;
   transition:all 0.2s ease;
@@ -1317,7 +1317,7 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
     display: flex;
     height: 64px;
     padding: 0 12px;
-    background: var(--color-surface);
+    background: var(--color-sidebar);
     border-top: 1px solid var(--color-border);
     justify-content: space-around;
     padding-bottom: env(safe-area-inset-bottom);
@@ -1377,7 +1377,7 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   font-size: 0.9rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  background: var(--color-search-bg);
   color: var(--color-text-primary);
   outline: none;
   resize: none;
