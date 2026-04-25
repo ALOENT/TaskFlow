@@ -224,6 +224,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--color-text-primary);
 }
 
 .sidebar-user {
@@ -752,10 +753,38 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .toggle-notes-btn:hover{color:var(--color-text-primary)}
 .task-notes-display{font-size:0.85rem;color:var(--color-text-secondary);margin-top:4px;padding:8px 12px;background:var(--color-bg);border-radius:var(--radius-sm);border-left:2px solid var(--color-accent);white-space:pre-wrap;display:none}
 .task-notes-display.visible{display:block}
-.add-task-options{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
-.category-select,.reminder-input{padding:10px 14px;font-size:16px;font-family:var(--font);border:1px solid #cbd5e1;border-radius:var(--radius-md);background:var(--color-surface);color:var(--color-text-primary);outline:none;transition:all 0.2s ease;min-height:48px}
-.category-select:focus,.reminder-input:focus{border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(37,99,235,0.1)}
-[data-theme="dark"] .category-select,[data-theme="dark"] .reminder-input{border-color:var(--color-border)}
+.category-select,.reminder-input,#sheet-task-input,#sheet-priority-select,#sheet-category-select,#sheet-reminder-input,#sheet-recurrence-select{
+  padding:10px 14px;
+  font-size:16px;
+  font-family:var(--font);
+  border:1px solid var(--color-border);
+  border-radius:var(--radius-md);
+  background:var(--color-surface);
+  color:var(--color-text-primary);
+  outline:none;
+  transition:all 0.2s ease;
+  min-height:48px;
+  width: 100%;
+}
+
+.category-select:focus,.reminder-input:focus,#sheet-task-input:focus,#sheet-priority-select:focus,#sheet-category-select:focus,#sheet-reminder-input:focus,#sheet-recurrence-select:focus{
+  border-color:var(--color-accent);
+  box-shadow:0 0 0 3px rgba(37,99,235,0.1);
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  padding-right: 40px !important;
+}
+
+[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+}
+
 .category-select{flex:1;min-width:140px}
 .reminder-input{flex:1;min-width:200px}
 
@@ -867,14 +896,33 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .flatpickr-prev-month:hover, .flatpickr-next-month:hover { color: var(--color-accent) !important; fill: var(--color-accent) !important; }
 
 /* Month and Year Dropdowns */
-.flatpickr-current-month input.cur-year, .flatpickr-current-month .flatpickr-monthDropdown-months { font-family: var(--font) !important; font-weight: 600 !important; color: var(--color-text-primary) !important; background: var(--color-surface) !important; appearance: none; outline: none !important; }
-.flatpickr-current-month .flatpickr-monthDropdown-months:hover, .flatpickr-current-month input.cur-year:hover { background: var(--color-bg) !important; }
-.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month { background: var(--color-surface) !important; color: var(--color-text-primary) !important; }
-.flatpickr-current-month input.cur-year[disabled], .flatpickr-current-month input.cur-year[disabled]:hover { color: var(--color-text-muted) !important; background: transparent !important; }
-.numInputWrapper span { border: 1px solid var(--color-border) !important; border-right: none !important; outline: none !important; }
-.numInputWrapper span:hover { background: var(--color-bg) !important; }
-.numInputWrapper span.arrowUp:after { border-bottom-color: var(--color-text-primary) !important; }
-.numInputWrapper span.arrowDown:after { border-top-color: var(--color-text-primary) !important; }
+.flatpickr-current-month input.cur-year, 
+.flatpickr-current-month .flatpickr-monthDropdown-months { 
+  font-family: var(--font) !important; 
+  font-weight: 700 !important; 
+  color: var(--color-text-primary) !important; 
+  background: transparent !important; 
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 2px 6px !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover, 
+.flatpickr-current-month input.cur-year:hover { 
+  background: var(--color-bg) !important; 
+}
+.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month { 
+  background: var(--color-surface) !important; 
+  color: var(--color-text-primary) !important; 
+}
+.numInputWrapper span { 
+  border: none !important; 
+}
+.numInputWrapper span:hover { 
+  background: var(--color-bg) !important; 
+  border-radius: 4px !important;
+}
 
 /* Weekdays */
 span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight: 600 !important; font-family: var(--font) !important; }
@@ -1059,16 +1107,17 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   gap: 20px;
 }
 
+.sheet-form label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: -12px; /* Pull label closer to input */
+}
+
 .sheet-form input[type="text"], .sheet-form select {
-  width: 100%;
-  padding: 14px 16px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-family: var(--font);
-  font-size: 1rem;
-  color: var(--color-text-primary);
-  outline: none;
+  /* Styles are now handled by the consolidated rule at line 753 */
 }
 
 .sheet-row {
@@ -1084,10 +1133,11 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
 }
 
 .sheet-col label {
-  font-size: 0.75rem;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--color-text-secondary);
+  color: var(--color-text-label);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .full-width {
@@ -1365,14 +1415,15 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--color-text-primary);
-  background: transparent;
-  border: 1px solid transparent;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
 .custom-dropdown-trigger:hover {
   background: var(--color-bg);
+  border-color: var(--color-accent);
 }
 .custom-dropdown-menu {
   position: absolute;
