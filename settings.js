@@ -195,55 +195,47 @@ async function handleAvatarUpload(file) {
   if (!user) return;
 
   const spinner = document.getElementById('avatar-spinner');
-
-  // Validation
-  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-  if (!validTypes.includes(file.type)) {
-    showToast('Invalid file type. Use JPG, PNG, WEBP, or GIF.', 'error');
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('File too large. Max size is 5MB.', 'error');
-    return;
-  }
-
-  const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
-  const uploadTask = uploadBytesResumable(storageRef, file);
-
   if (spinner) spinner.style.display = 'flex';
 
-  uploadTask.on('state_changed', null, 
-    (error) => {
-      showToast('Upload failed: ' + error.message, 'error');
-      if (spinner) spinner.style.display = 'none';
-    }, 
-    async () => {
-      try {
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        await updateProfile(user, { photoURL: downloadURL });
-        
-        const avatarHTML = `<img src="${downloadURL}" alt="Avatar">`;
-        const profileDisplay = document.getElementById('profile-avatar-display');
-        if (profileDisplay) {
-          profileDisplay.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
-        }
-        
-        // Update all global UI avatars
-        const avatarContainers = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar'];
-        avatarContainers.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) el.innerHTML = avatarHTML;
-        });
-
-        showToast('Profile photo updated!', 'success');
-      } catch (err) {
-        showToast('Error updating profile photo', 'error');
-      } finally {
-        const finalSpinner = document.getElementById('avatar-spinner');
-        if (finalSpinner) finalSpinner.style.display = 'none';
-      }
+  try {
+    // Validation
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      showToast('Invalid file type. Use JPG, PNG, WEBP, or GIF.', 'error');
+      return;
     }
-  );
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File too large. Max size is 5MB.', 'error');
+      return;
+    }
+
+    const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
+    await uploadBytesResumable(storageRef, file);
+    
+    const downloadURL = await getDownloadURL(storageRef);
+    await updateProfile(user, { photoURL: downloadURL });
+    
+    const avatarHTML = `<img src="${downloadURL}" alt="Avatar">`;
+    const profileDisplay = document.getElementById('profile-avatar-display');
+    if (profileDisplay) {
+      profileDisplay.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
+    }
+    
+    // Update all global UI avatars
+    const avatarContainers = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar'];
+    avatarContainers.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = avatarHTML;
+    });
+
+    showToast('Profile photo updated!', 'success');
+  } catch (error) {
+    console.error(error);
+    showToast('Upload failed: ' + error.message, 'error');
+  } finally {
+    const finalSpinner = document.getElementById('avatar-spinner');
+    if (finalSpinner) finalSpinner.style.display = 'none';
+  }
 }
 
 function updateProfileStats(animate = true) {
