@@ -25,6 +25,8 @@
   --color-user-bg: #f4f7fa;
   --color-nav-hover: #eef2f6;
   --color-search-bg: #eef2f6;
+  --color-search-bg-hover: #e2e8f0;
+  --color-border-hover: #cbd5e1;
   --color-btn-secondary: #f1f5f9;
   --color-btn-secondary-hover: #e2e8f0;
   
@@ -68,6 +70,8 @@
   --color-user-bg: var(--color-surface);
   --color-nav-hover: rgba(255,255,255,0.05);
   --color-search-bg: var(--color-bg);
+  --color-search-bg-hover: #1e1e1e;
+  --color-border-hover: #3d3d3d;
   --color-btn-secondary: var(--color-bg);
   --color-btn-secondary-hover: var(--color-border);
   
@@ -149,7 +153,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .auth-tab{flex:1;padding:10px 14px;font-size:.875rem;font-weight:700;font-family:var(--font);color:var(--color-text-secondary);background:transparent;border:none;border-radius:var(--radius-md);cursor:pointer;transition:all var(--transition-fast)}
 .auth-tab.active{background:var(--color-search-bg);color:var(--color-accent);box-shadow:var(--shadow-sm)}
 .google-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 16px;font-size:.9375rem;font-weight:600;font-family:var(--font);color:var(--color-text-primary);background:var(--color-search-bg);border:1.5px solid var(--color-border);border-radius:var(--radius-md);cursor:pointer;transition:background var(--transition-fast),border-color var(--transition-fast);margin-bottom:20px}
-.google-btn:hover{background:#f8f9ff;border-color:#c7d2fe}
+.google-btn:hover{background:var(--color-search-bg-hover);border-color:var(--color-border-hover)}
 .auth-divider{position:relative;text-align:center;margin-bottom:20px}
 .auth-divider::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--color-border)}
 .auth-divider span{position:relative;background:var(--color-surface);padding:0 12px;font-size:.8rem;color:var(--color-text-muted);font-weight:500}
@@ -1774,6 +1778,12 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+@media (max-width: 767px) {
+  .toast-container {
+    bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
+  }
 }
 
 .toast {

@@ -16,6 +16,14 @@ const tabButtons      = document.querySelectorAll('.settings-tab-btn');
 
 let activeTab = 'profile';
 let tasks = []; 
+let unsubscribeTasks = null;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 export function initSettings() {
   if (!settingsBtn) return;
@@ -31,14 +39,21 @@ export function initSettings() {
   });
 
   onAuthStateChanged(auth, user => {
+    if (unsubscribeTasks) {
+      unsubscribeTasks();
+      unsubscribeTasks = null;
+    }
+
     if (user) {
       const q = query(collection(db, 'users', user.uid, 'tasks'));
-      onSnapshot(q, snapshot => {
+      unsubscribeTasks = onSnapshot(q, snapshot => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         if (settingsView.style.display !== 'none' && activeTab === 'profile') {
-          updateProfileStats(false); // Update without re-triggering skeletons if already open
+          updateProfileStats(false);
         }
       });
+    } else {
+      tasks = [];
     }
   });
 }
@@ -92,6 +107,10 @@ function renderProfileTab(container) {
 
   const initials = user.displayName ? user.displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : '?';
 
+  const displayName = user.displayName || 'Anonymous';
+  const email = user.email || '';
+  const photoURL = user.photoURL || '';
+
   container.innerHTML = `
     <div class="settings-section">
       <span class="settings-section-title">Public Profile</span>
@@ -99,7 +118,7 @@ function renderProfileTab(container) {
       <div class="profile-header">
         <div class="avatar-upload-container">
           <div class="profile-avatar-large" id="profile-avatar-display">
-            ${user.photoURL ? `<img src="${user.photoURL}" alt="Avatar">` : initials}
+            ${photoURL ? `<img src="${escapeHtml(photoURL)}" alt="Avatar">` : escapeHtml(initials)}
             <div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>
           </div>
           <div class="avatar-overlay" id="avatar-upload-trigger" title="Change photo">
@@ -108,15 +127,15 @@ function renderProfileTab(container) {
           <input type="file" id="avatar-input" style="display:none" accept=".jpg,.jpeg,.png,.webp,.gif">
         </div>
         <div class="profile-info">
-          <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${user.displayName || 'Anonymous'}</h3>
-          <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${createdAt}</p>
+          <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
+          <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${escapeHtml(createdAt)}</p>
         </div>
       </div>
 
       <div class="profile-row">
         <label>Display Name</label>
         <div class="profile-input-group">
-          <input type="text" id="profile-name-input" class="form-input" value="${user.displayName || ''}" placeholder="Your display name">
+          <input type="text" id="profile-name-input" class="form-input" value="${escapeHtml(displayName === 'Anonymous' ? '' : displayName)}" placeholder="Your display name">
           <button id="save-profile-name" class="primary-btn" style="display:none;">Save</button>
         </div>
       </div>
@@ -124,7 +143,7 @@ function renderProfileTab(container) {
       <div class="profile-row">
         <label>Email</label>
         <div class="read-only-val">
-          <span>${user.email}</span>
+          <span>${escapeHtml(email)}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-text-muted)"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
       </div>
@@ -215,7 +234,8 @@ async function handleAvatarUpload(file) {
     const downloadURL = await getDownloadURL(storageRef);
     await updateProfile(user, { photoURL: downloadURL });
     
-    const avatarHTML = `<img src="${downloadURL}" alt="Avatar">`;
+    const escapedURL = escapeHtml(downloadURL);
+    const avatarHTML = `<img src="${escapedURL}" alt="Avatar">`;
     const profileDisplay = document.getElementById('profile-avatar-display');
     if (profileDisplay) {
       profileDisplay.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
@@ -250,7 +270,9 @@ function updateProfileStats(animate = true) {
   const streakCount = calculateStreak(tasks);
 
   // Store in localStorage as backup
-  localStorage.setItem(`streak_${auth.currentUser?.uid}`, streakCount);
+  if (auth.currentUser?.uid) {
+    localStorage.setItem(`streak_${auth.currentUser.uid}`, streakCount);
+  }
 
   if (animate) {
     animateValue(totalValEl, 0, totalTasksCount, 500);
