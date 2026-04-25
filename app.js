@@ -20,6 +20,9 @@ import {
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import { sanitize } from './sanitize.js';
+import { initSettings } from './settings.js';
+
+initSettings();
 
 // ============================================
 //  CATEGORIES
@@ -1496,4 +1499,8 @@ function buildCustomDropdown(selectId) {
 
 buildCustomDropdown('recurrence-select');
 buildCustomDropdown('sheet-recurrence-select');
+buildCustomDropdown('priority-select');
+buildCustomDropdown('sheet-priority-select');
+buildCustomDropdown('category-select');
+buildCustomDropdown('sheet-category-select');
 

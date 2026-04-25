@@ -8,11 +8,18 @@ import { getAuth, GoogleAuthProvider,
          onAuthStateChanged,
          createUserWithEmailAndPassword,
          signInWithEmailAndPassword,
-         updateProfile }               from 'firebase/auth';
+         updateProfile,
+         updatePassword,
+         reauthenticateWithCredential,
+         EmailAuthProvider }           from 'firebase/auth';
 import { getFirestore, collection, addDoc,
          deleteDoc, doc, updateDoc, query,
-         orderBy, onSnapshot,
-         serverTimestamp, writeBatch } from 'firebase/firestore';
+         orderBy, onSnapshot, getDocs,
+         serverTimestamp, writeBatch,
+         where }                       from 'firebase/firestore';
+import { getStorage, ref, 
+         uploadBytesResumable, 
+         getDownloadURL }              from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyClYYhtsn04OdidKPREmL1BFlBQvdodm_Y",
@@ -27,11 +34,15 @@ const app = initializeApp(firebaseConfig);
 
 const auth         = getAuth(app);
 const db           = getFirestore(app);
+const storage      = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 export {
-  auth, db, googleProvider,
+  auth, db, storage, googleProvider,
   signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
-  collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, serverTimestamp, writeBatch
+  updatePassword, reauthenticateWithCredential, EmailAuthProvider,
+  collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, getDocs,
+  serverTimestamp, writeBatch, where,
+  ref, uploadBytesResumable, getDownloadURL
 };

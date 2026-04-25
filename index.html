@@ -20,7 +20,7 @@
     <div class="auth-card">
       <div class="auth-brand">
         <div class="logo-icon auth-logo-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
           </svg>
         </div>
@@ -84,7 +84,7 @@
   <div id="loading-overlay" class="loading-overlay">
     <div class="loading-logo">
       <div class="logo-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
         </svg>
       </div>
@@ -100,7 +100,7 @@
         <div class="sidebar-header">
           <div class="branding">
             <div class="logo-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
               </svg>
             </div>
@@ -167,7 +167,7 @@
       <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
       <!-- Main Content -->
-      <div class="main-content-wrapper">
+      <div class="main-content-wrapper" id="dashboard-view">
         <!-- Mobile Top Bar -->
         <header class="mobile-top-bar">
           <button class="menu-btn" id="menu-btn" aria-label="Menu">
@@ -175,7 +175,7 @@
           </button>
           <div class="mobile-branding">
             <div class="logo-icon mini">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
               </svg>
             </div>
@@ -228,36 +228,53 @@
           <!-- Stats Row -->
           <div class="stats-grid" id="stats-grid">
             <div class="stat-card minimal" id="stat-total">
+              <div class="stat-icon total">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </div>
               <div class="stat-info">
                 <span class="stat-label">Total</span>
                 <span class="stat-value" id="total-count">0</span>
               </div>
             </div>
             <div class="stat-card minimal" id="stat-high">
+              <div class="stat-icon high">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
               <div class="stat-info">
                 <span class="stat-label">High Priority</span>
                 <span class="stat-value" id="high-count">0</span>
               </div>
             </div>
             <div class="stat-card minimal" id="stat-overdue">
+              <div class="stat-icon overdue">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
               <div class="stat-info">
                 <span class="stat-label">Overdue</span>
                 <span class="stat-value" id="overdue-count">0</span>
               </div>
             </div>
             <div class="stat-card minimal" id="stat-today">
+              <div class="stat-icon today">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
               <div class="stat-info">
                 <span class="stat-label">Due Today</span>
                 <span class="stat-value" id="today-count">0</span>
               </div>
             </div>
             <div class="stat-card minimal completion">
-              <div class="stat-info">
-                <span class="stat-label">Completion</span>
-                <span class="stat-value" id="completed-percentage">0%</span>
+              <div class="stat-icon completion">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
               </div>
-              <div class="mini-progress">
-                <div class="progress-bar" id="progress-bar-inner" style="width: 0%"></div>
+              <div class="stat-info-wrap" style="flex:1">
+                <div class="stat-info" style="display:flex;justify-content:space-between;align-items:flex-end;">
+                  <span class="stat-label">Completion</span>
+                  <span class="stat-value" id="completed-percentage">0%</span>
+                </div>
+                <div class="mini-progress">
+                  <div class="progress-bar" id="progress-bar-inner" style="width: 0%"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -395,6 +412,45 @@
               <button id="sheet-add-task-btn" class="primary-btn full-width">Add Task</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Settings View -->
+      <div class="settings-view" id="settings-view" style="display:none;">
+        <header class="settings-header">
+          <button class="back-btn" id="settings-back-btn" aria-label="Back to dashboard">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
+          <h2>Settings</h2>
+        </header>
+
+        <div class="settings-layout">
+          <aside class="settings-tabs" id="settings-tabs">
+            <button class="settings-tab-btn active" data-tab="profile">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Profile</span>
+            </button>
+            <button class="settings-tab-btn" data-tab="appearance">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              <span>Appearance</span>
+            </button>
+            <button class="settings-tab-btn" data-tab="notifications">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span>Notifications</span>
+            </button>
+            <button class="settings-tab-btn" data-tab="data">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h7"/><path d="M3 10h18"/><path d="M18 21v-6"/><path d="M15 18h6"/></svg>
+              <span>Data</span>
+            </button>
+            <button class="settings-tab-btn" data-tab="account">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Account</span>
+            </button>
+          </aside>
+
+          <main class="settings-content" id="settings-content">
+            <!-- Tab contents will be injected here -->
+          </main>
         </div>
       </div>
     </div>
