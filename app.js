@@ -1496,4 +1496,8 @@ function buildCustomDropdown(selectId) {
 
 buildCustomDropdown('recurrence-select');
 buildCustomDropdown('sheet-recurrence-select');
+buildCustomDropdown('priority-select');
+buildCustomDropdown('sheet-priority-select');
+buildCustomDropdown('category-select');
+buildCustomDropdown('sheet-category-select');
 

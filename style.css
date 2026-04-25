@@ -57,6 +57,8 @@
   --color-text-muted: #64748b;
   --color-text-label: #64748b;
   --color-accent: #3b82f6;
+  --color-accent-hover: #3b82f6;
+  --color-accent-light: #1e293b;
   --color-danger-bg: #2d1215;
   --color-warning-bg: #2d2505;
   --color-success-bg: #0d2818;
@@ -192,6 +194,12 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2000;
+}
+
+[data-theme="dark"] .sidebar {
+  background: var(--color-sidebar) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .sidebar-overlay {
@@ -486,6 +494,13 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   justify-content: space-between;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
+  transition: background 0.3s ease;
+}
+
+[data-theme="dark"] .top-bar {
+  background: var(--color-surface) !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .page-title {
@@ -584,18 +599,23 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .stat-icon {
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-.stat-icon.total { background: var(--color-accent-light); color: var(--color-accent); }
-.stat-icon.high { background: var(--color-danger-bg); color: var(--color-danger); }
-.stat-icon.overdue { background: var(--color-warning-bg); color: var(--color-warning); }
-.stat-icon.today { background: var(--color-success-bg); color: var(--color-success); }
-.stat-icon.completion { background: var(--color-accent-light); color: var(--color-accent); }
+.stat-icon.total { background: var(--color-accent-light); color: var(--color-accent) !important; }
+.stat-icon.high { background: var(--color-danger-bg); color: var(--color-danger) !important; }
+.stat-icon.overdue { background: var(--color-warning-bg); color: var(--color-warning) !important; }
+.stat-icon.today { background: var(--color-success-bg); color: var(--color-success) !important; }
+.stat-icon.completion { background: var(--color-accent-light); color: var(--color-accent) !important; }
+
+.stat-icon svg {
+  stroke: currentColor !important;
+}
 
 .stat-info {
   display: flex;
