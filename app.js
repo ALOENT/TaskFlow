@@ -20,6 +20,9 @@ import {
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import { sanitize } from './sanitize.js';
+import { initSettings } from './settings.js';
+
+initSettings();
 
 // ============================================
 //  CATEGORIES
