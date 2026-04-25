@@ -20,6 +20,7 @@
   --color-danger-bg: #fef2f2;
   --color-warning-bg: #fff7ed;
   --color-success-bg: #f0fdf4;
+  --color-success-light: #dcfce7;
   
   --color-user-bg: #f8fafc;
   --color-nav-hover: #f8fafc;
@@ -57,11 +58,12 @@
   --color-text-muted: #64748b;
   --color-text-label: #64748b;
   --color-accent: #3b82f6;
-  --color-accent-hover: #3b82f6;
+  --color-accent-hover: #60a5fa;
   --color-accent-light: #1e293b;
   --color-danger-bg: #2d1215;
   --color-warning-bg: #2d2505;
   --color-success-bg: #0d2818;
+  --color-success-light: rgba(34, 197, 94, 0.15);
   
   --color-user-bg: var(--color-surface);
   --color-nav-hover: rgba(255,255,255,0.05);
