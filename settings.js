@@ -445,6 +445,21 @@ function renderAppearanceTab(container) {
           </button>
         `).join('')}
       </div>
+
+      <div class="custom-colors-section" style="margin-top: 24px;">
+        <span class="settings-section-title" style="margin-bottom: 12px; display: block;">CUSTOM COLORS</span>
+        <div class="custom-accent-container" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <div class="add-custom-color-btn" style="position: relative; width: 40px; height: 40px;">
+            <button class="color-swatch-plus" title="Add custom color" style="width: 40px; height: 40px; border-radius: 50%; border: 2px dashed var(--color-text-muted); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-muted); transition: all 0.2s;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <input type="color" id="custom-accent-input" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" title="Add custom color">
+          </div>
+          <div id="custom-swatches-row" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+            <!-- Custom swatches injected here -->
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="settings-section">
@@ -534,4 +549,139 @@ function renderAppearanceTab(container) {
       }
     });
   });
+
+  // CUSTOM COLORS LOGIC
+  const customSwatchesRow = container.querySelector('#custom-swatches-row');
+  const customAccentInput = container.querySelector('#custom-accent-input');
+  
+  let customColors = JSON.parse(localStorage.getItem('customAccentColors') || '[]');
+  let editingIndex = -1;
+
+  const renderCustomSwatches = () => {
+    customSwatchesRow.innerHTML = customColors.map((color, index) => `
+      <button class="color-swatch custom-swatch ${currentAccent === color ? 'active' : ''}" 
+              style="background-color: ${color};" 
+              data-color="${color}" 
+              data-index="${index}">
+         ${currentAccent === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+      </button>
+    `).join('');
+
+    const swatches = customSwatchesRow.querySelectorAll('.custom-swatch');
+    swatches.forEach(swatch => {
+      let pressTimer;
+      const index = parseInt(swatch.dataset.index);
+      const color = swatch.dataset.color;
+
+      // Click to apply
+      swatch.addEventListener('click', (e) => {
+        if (e.detail > 1) return; // Ignore double clicks if needed
+        applyColor(color);
+      });
+
+      // Context menu for Edit/Remove
+      swatch.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(e.pageX, e.pageY, index, color);
+      });
+
+      // Long press for mobile
+      swatch.addEventListener('touchstart', (e) => {
+        pressTimer = setTimeout(() => showContextMenu(e.touches[0].pageX, e.touches[0].pageY, index, color), 600);
+      }, {passive: true});
+      swatch.addEventListener('touchend', () => clearTimeout(pressTimer));
+    });
+  };
+
+  const applyColor = (color) => {
+    localStorage.setItem('accentColor', color);
+    document.documentElement.style.setProperty('--color-accent', color);
+    // Refresh UI
+    renderTab(); 
+  };
+
+  const showContextMenu = (x, y, index, color) => {
+    // Remove existing
+    const existing = document.querySelector('.color-context-menu');
+    if (existing) existing.remove();
+
+    const menu = document.createElement('div');
+    menu.className = 'color-context-menu';
+    menu.style.cssText = `
+      position: fixed;
+      top: ${y}px;
+      left: ${x}px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      min-width: 100px;
+    `;
+
+    menu.innerHTML = `
+      <div class="menu-item" id="edit-color" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary);">Edit</div>
+      <div class="menu-item" id="remove-color" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-danger);">Remove</div>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Adjust position if it goes off screen
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
+    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+
+    menu.querySelector('#edit-color').addEventListener('click', () => {
+      editingIndex = index;
+      customAccentInput.value = color;
+      customAccentInput.click();
+      menu.remove();
+    });
+
+    menu.querySelector('#remove-color').addEventListener('click', () => {
+      customColors.splice(index, 1);
+      localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+      renderCustomSwatches();
+      menu.remove();
+    });
+
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('mousedown', closeMenu);
+      }
+    };
+    document.addEventListener('mousedown', closeMenu);
+  };
+
+  customAccentInput.addEventListener('input', (e) => {
+    const val = e.target.value;
+    if (editingIndex === -1) {
+      // Just preview maybe? User said "picked and confirmed"
+    }
+  });
+
+  customAccentInput.addEventListener('change', (e) => {
+    const val = e.target.value;
+    if (editingIndex !== -1) {
+      customColors[editingIndex] = val;
+      editingIndex = -1;
+    } else {
+      // Add new
+      if (customColors.includes(val)) {
+        // Already exists, just apply
+      } else {
+        if (customColors.length >= 5) {
+          customColors.shift(); // Remove oldest
+        }
+        customColors.push(val);
+      }
+    }
+    localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+    applyColor(val);
+    renderCustomSwatches();
+  });
+
+  renderCustomSwatches();
 }

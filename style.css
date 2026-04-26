@@ -2414,3 +2414,7 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
     display: none !important;
   }
 }
+
+.menu-item:hover {
+  background: var(--color-nav-hover);
+}
