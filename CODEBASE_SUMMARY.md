@@ -41,7 +41,7 @@ This document provides a high-level overview of the TaskFlow application archite
 - **Task Management:** Create, Read, Update, and Delete (CRUD) operations for tasks.
 - **Subtasks:** Support for nested subtasks with individual completion tracking.
 - **Real-time Sync:** Live data synchronization across devices using Firestore real-time listeners.
-- **Categorization:** Pre-defined categories (Work, Personal, Errands, Health, Other).
+- **Categorization:** Pre-defined categories (Work, Personal, Shopping, Health, Other).
 - **Prioritization:** Task priority flags (High, Medium, Low).
 - **Reminders:** Local device push notifications triggered at scheduled times (via Capacitor).
 - **Recurrence:** Option to make tasks repeat (Daily, Weekly, Monthly) upon completion.

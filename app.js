@@ -223,10 +223,15 @@ if (savedFontSize) {
 
 const savedSidebarPos = localStorage.getItem('sidebarPosition');
 if (savedSidebarPos === 'right') {
-  document.addEventListener('DOMContentLoaded', () => {
+  const applySidebar = () => {
     const layoutWrapper = document.querySelector('.layout-wrapper');
     if (layoutWrapper) layoutWrapper.classList.add('sidebar-right');
-  });
+  };
+  if (document.readyState !== 'loading') {
+    applySidebar();
+  } else {
+    document.addEventListener('DOMContentLoaded', applySidebar);
+  }
 }
 
 
@@ -1372,8 +1377,11 @@ function renderTasks() {
   if (mobileProgPct) {
     mobileProgPct.textContent = pct + '%';
   }
+  const todayCompleted = tasks.filter(t => t.completed && t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
+  const todayTotalCount = tasks.filter(t => t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
+
   if (mobileProgCount) {
-    mobileProgCount.textContent = `${completedCount} of ${totalTasks} tasks completed today`;
+    mobileProgCount.textContent = `${todayCompleted} of ${todayTotalCount} tasks completed today`;
   }
   if (mobileProgFill) {
     mobileProgFill.style.width = pct + '%';
@@ -1421,10 +1429,10 @@ function setupNoteUI(toggleBtn, containerEl, textareaEl, cancelBtn, doneBtn) {
   const closeNote = () => {
     containerEl.style.display = 'none';
     toggleBtn.style.display = 'inline-block';
-    if (textareaEl.value.trim() !== '') {
+    if (textareaEl && textareaEl.value.trim() !== '') {
       toggleBtn.innerHTML = '📝 Note added';
       toggleBtn.classList.add('has-note');
-    } else {
+    } else if (textareaEl) {
       toggleBtn.innerHTML = '📝 Add Note';
       toggleBtn.classList.remove('has-note');
     }
@@ -1434,7 +1442,7 @@ function setupNoteUI(toggleBtn, containerEl, textareaEl, cancelBtn, doneBtn) {
   
   if (cancelBtn) {
     cancelBtn.addEventListener('click', () => {
-      textareaEl.value = '';
+      if (textareaEl) textareaEl.value = '';
       closeNote();
     });
   }

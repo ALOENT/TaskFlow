@@ -5,7 +5,7 @@ import {
   collection, query, where, onSnapshot, getDocs,
   addDoc, deleteDoc, writeBatch, doc,
   onAuthStateChanged, serverTimestamp,
-  updatePassword, reauthenticateWithCredential, EmailAuthProvider,
+  updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
   signOut, googleProvider, signInWithPopup
 } from './firebase-config.js';
 
@@ -88,6 +88,12 @@ export function initSettings() {
         if (settingsView.style.display !== 'none' && activeTab === 'profile') {
           updateProfileStats(false);
         }
+      }, error => {
+        console.error("Tasks subscription error:", error);
+        tasks = [];
+        if (settingsView.style.display !== 'none' && activeTab === 'profile') {
+          updateProfileStats(false);
+        }
       });
     } else {
       tasks = [];
@@ -156,7 +162,9 @@ function renderProfileTab(container) {
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })
     : 'Unknown';
 
-  const initials = user.displayName ? user.displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : '?';
+  const initials = user.displayName 
+    ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+    : '?';
 
   const displayName = user.displayName || 'Anonymous';
   const email = user.email || '';
@@ -309,7 +317,7 @@ async function handleAvatarUpload(file) {
     showToast('Profile photo updated!', 'success');
   } catch (error) {
     console.error(error);
-    showToast('Upload failed: ' + error.message, 'error');
+    showToast('Upload failed. Please try again.', 'error');
   } finally {
     const finalAvatar = document.getElementById('profile-avatar-display');
     if (finalAvatar) finalAvatar.classList.remove('loading');
@@ -374,9 +382,12 @@ function calculateStreak(allTasks) {
     });
 
   if (completedDates.length === 0) {
-    // Check backup
-    const backup = localStorage.getItem(`streak_${user.uid}`);
-    return backup ? parseInt(backup, 10) : 0;
+    // Check backup only if all tasks are empty
+    if (allTasks.length === 0) {
+      const backup = localStorage.getItem(`streak_${user.uid}`);
+      return backup ? parseInt(backup, 10) : 0;
+    }
+    return 0;
   }
 
   const uniqueDates = Array.from(new Set(completedDates)).map(d => new Date(d));
@@ -901,7 +912,7 @@ function renderNotificationsTab(container) {
   const defaultTime = localStorage.getItem('defaultReminderTime') || '09:00';
   const soundEnabled = localStorage.getItem('notificationSound') !== 'false'; // Default true
   const leadTime = localStorage.getItem('reminderLeadTime') || 'At the time';
-  const permission = Notification.permission;
+  const permission = (typeof Notification !== 'undefined') ? Notification.permission : 'default';
 
   const leadTimeOptions = [
     'At the time',
@@ -1442,14 +1453,14 @@ function renderAccountTab(container) {
           }
         </div>
 
-        <div class="user-avatar-container" style="flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: var(--color-accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;">
-          ${user.photoURL ? `<img src="${user.photoURL}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : (user.displayName ? user.displayName.charAt(0).toUpperCase() : '?')}
+        <div class="user-avatar-container" id="account-avatar-container" style="flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: var(--color-accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;">
+          <!-- Content populated via safe DOM APIs -->
         </div>
 
         <div class="user-details" style="display: flex; flex-direction: column; gap: 1px; padding-right: 60px;">
-          <span style="font-size: 18px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2;">${user.displayName || 'TaskFlow User'}</span>
-          <span style="font-size: 14px; color: var(--color-text-muted);">${user.email}</span>
-          <span style="font-size: 12px; color: var(--color-text-muted); opacity: 0.8;">Member since ${creationDate}</span>
+          <span id="account-display-name" style="font-size: 18px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2;"></span>
+          <span id="account-email" style="font-size: 14px; color: var(--color-text-muted);"></span>
+          <span id="account-member-since" style="font-size: 12px; color: var(--color-text-muted); opacity: 0.8;"></span>
         </div>
       </div>
     </div>
@@ -1558,6 +1569,29 @@ function renderAccountTab(container) {
       }
     </style>
   `;
+
+  // --- Populate Account Details Safely ---
+  const avatarContainer = container.querySelector('#account-avatar-container');
+  const displayNameEl = container.querySelector('#account-display-name');
+  const emailEl = container.querySelector('#account-email');
+  const memberSinceEl = container.querySelector('#account-member-since');
+
+  if (user.photoURL) {
+    const img = document.createElement('img');
+    img.src = user.photoURL;
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    avatarContainer.innerHTML = '';
+    avatarContainer.appendChild(img);
+  } else {
+    const initials = user.displayName 
+      ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+      : '?';
+    avatarContainer.textContent = initials;
+  }
+
+  displayNameEl.textContent = user.displayName || 'TaskFlow User';
+  emailEl.textContent = user.email || '';
+  memberSinceEl.textContent = `Member since ${creationDate}`;
 
   // --- Password Functionality ---
   if (!isGoogle) {
@@ -1693,6 +1727,9 @@ function showDeleteAccountModal() {
     btn.innerHTML = `<div class="loader-spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>`;
     
     try {
+      // 0. Mark deletion in progress on user doc
+      await updateDoc(doc(db, 'users', user.uid), { deletionInProgress: true });
+
       // 1. Batch delete tasks
       for (let i = 0; i < tasks.length; i += 500) {
         const batch = writeBatch(db);
@@ -1716,7 +1753,8 @@ function showDeleteAccountModal() {
         close();
         showReauthModal();
       } else {
-        showToast('Failed to delete account', 'error');
+        console.error("Critical Deletion Failure:", err);
+        showToast('Failed to delete account. Please try again.', 'error');
         btn.disabled = false;
         btn.innerHTML = 'Delete Account';
       }
@@ -1770,11 +1808,12 @@ function showReauthModal() {
     googleBtn.onclick = async () => {
       googleBtn.disabled = true;
       try {
-        await signInWithPopup(auth, googleProvider);
+        await reauthenticateWithPopup(user, googleProvider);
         showToast('Identity verified. You can now delete your account.', 'success');
         close();
         showDeleteAccountModal();
       } catch (err) {
+        console.error("Re-auth failed:", err);
         showToast('Verification failed', 'error');
         googleBtn.disabled = false;
       }
