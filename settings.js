@@ -101,7 +101,7 @@ export function initSettings() {
   });
 }
 
-function openSettings() {
+export function openSettings() {
   dashboardView.style.display = 'none';
   settingsView.style.display = 'flex';
   document.getElementById('sidebar').classList.remove('open');

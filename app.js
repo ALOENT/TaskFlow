@@ -20,9 +20,15 @@ import {
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import { sanitize } from './sanitize.js';
-import { initSettings } from './settings.js';
-
-initSettings();
+// Lazy load settings when button clicked
+const settingsBtn = document.getElementById('settings-btn');
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', async () => {
+    const { openSettings, initSettings } = await import('./settings.js');
+    initSettings();
+    openSettings();
+  }, { once: true });
+}
 
 // Prevent glitchy animations during window resize
 let resizeTimer;
