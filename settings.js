@@ -253,8 +253,14 @@ async function handleAvatarUpload(file) {
     console.error(error);
     showToast('Upload failed: ' + error.message, 'error');
   } finally {
+    const finalAvatar = document.getElementById('profile-avatar-display');
+    if (finalAvatar) finalAvatar.classList.remove('loading');
+
     const finalSpinner = document.getElementById('avatar-spinner');
     if (finalSpinner) finalSpinner.style.display = 'none';
+
+    const finalInput = document.getElementById('avatar-input');
+    if (finalInput) finalInput.disabled = false;
   }
 }
 
