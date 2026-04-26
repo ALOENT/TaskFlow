@@ -182,10 +182,10 @@
             <span class="logo-text">TaskFlow</span>
           </div>
           <div class="mobile-top-right">
-            <button class="theme-toggle-btn" id="mobile-theme-toggle" title="Toggle Theme">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="moon-icon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <button class="mobile-bell-btn" id="mobile-bell-btn" aria-label="Notifications">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </button>
-            <div class="user-avatar mini" id="mobile-user-avatar">?</div>
+            <div class="user-avatar mobile-avatar" id="mobile-user-avatar">?</div>
           </div>
         </header>
 
@@ -211,17 +211,18 @@
           <!-- Mobile Hero Greeting -->
           <section class="mobile-hero">
             <div class="greeting-row">
-              <h1 class="greeting-text">Hello, <span id="user-first-name">User</span> 👋</h1>
+              <h1 class="greeting-text" id="greeting-text">Hello, <span id="user-first-name">User</span> 👋</h1>
               <span class="current-date" id="current-date">Thursday, April 23</span>
             </div>
             <div class="mobile-progress-container">
               <div class="progress-info">
                 <span class="progress-label">Today's Progress</span>
-                <span class="progress-count" id="mobile-progress-count">0 of 0 tasks</span>
+                <span class="progress-pct" id="mobile-progress-pct">0%</span>
               </div>
               <div class="progress-bar-bg">
                 <div class="progress-bar-fill" id="mobile-progress-fill"></div>
               </div>
+              <span class="progress-count" id="mobile-progress-count">0 of 0 tasks completed today</span>
             </div>
           </section>
 
@@ -288,7 +289,7 @@
           <!-- Tasks Sections -->
           <div class="task-sections-container">
             <section class="task-section" id="active-section">
-              <h3 class="section-title">Active Tasks</h3>
+              <h3 class="section-title">ACTIVE</h3>
               <div class="task-list" id="active-task-list"></div>
               <div class="empty-state" id="active-empty" style="display:none;">
                 <p>No tasks found.</p>
@@ -296,7 +297,7 @@
             </section>
 
             <section class="task-section" id="completed-section">
-              <h3 class="section-title">Completed</h3>
+              <h3 class="section-title">COMPLETED</h3>
               <div class="task-list" id="completed-task-list"></div>
               <div class="empty-state" id="completed-empty" style="display:none;">
                 <p>No completed tasks.</p>
@@ -356,7 +357,12 @@
         <div class="bottom-sheet" id="bottom-sheet">
           <div class="sheet-handle"></div>
           <div class="sheet-content">
-            <h3 class="sheet-title">New Task</h3>
+            <div class="sheet-header-row">
+              <h3 class="sheet-title">New Task</h3>
+              <button class="sheet-close-btn" id="sheet-close-btn" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
             <div class="sheet-form">
               <label for="sheet-task-input" class="visually-hidden">Task title</label>
               <input type="text" id="sheet-task-input" placeholder="What needs to be done?" maxlength="120">

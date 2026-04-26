@@ -109,15 +109,17 @@ const bottomNav         = $('bottom-nav');
 const menuBtn           = $('menu-btn');
 const sidebar           = $('sidebar');
 const sidebarOverlay    = $('sidebar-overlay');
-const mobileThemeToggle = $('mobile-theme-toggle');
 const mobileUserAvatar  = $('mobile-user-avatar');
 const userFirstName     = $('user-first-name');
+const greetingTextEl    = $('greeting-text');
 const currentDateEl     = $('current-date');
 const mobileProgCount   = $('mobile-progress-count');
 const mobileProgFill    = $('mobile-progress-fill');
+const mobileProgPct     = $('mobile-progress-pct');
 const fabBtn            = $('fab-btn');
 const bottomSheet       = $('bottom-sheet');
 const sheetOverlay      = $('bottom-sheet-overlay');
+const sheetCloseBtn     = $('sheet-close-btn');
 const sheetTaskInput    = $('sheet-task-input');
 const sheetPriority     = $('sheet-priority-select');
 const sheetCategory     = $('sheet-category-select');
@@ -170,9 +172,7 @@ updateThemeIcon(savedTheme);
 if (themeToggleBtn) {
   themeToggleBtn.addEventListener('click', toggleTheme);
 }
-if (mobileThemeToggle) {
-  mobileThemeToggle.addEventListener('click', toggleTheme);
-}
+// Theme toggle removed from mobile header — lives in drawer/settings only
 
 function toggleTheme() {
   document.body.classList.add('theme-transitioning');
@@ -191,7 +191,6 @@ function updateThemeIcon(theme) {
   const sunIcon  = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
   
   if (themeToggleBtn) themeToggleBtn.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
-  if (mobileThemeToggle) mobileThemeToggle.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
 }
 
 // ============================================
@@ -333,6 +332,13 @@ function resetAuthForm() {
 // ============================================
 //  HEADER USER INFO
 // ============================================
+function getTimeGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 function updateHeaderUI(user) {
   const email = user.email || '';
   const displayName = user.displayName || (email ? email.split('@')[0] : 'User');
@@ -341,6 +347,11 @@ function updateHeaderUI(user) {
   sideUserName.textContent = displayName;
   sideUserEmail.textContent = email;
   if (userFirstName) userFirstName.textContent = firstName;
+
+  // Time-based greeting
+  if (greetingTextEl) {
+    greetingTextEl.innerHTML = `${getTimeGreeting()}, <span id="user-first-name">${firstName}</span> \u{1F44B}`;
+  }
   
   const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   
@@ -417,7 +428,7 @@ function renderCategoryTabs() {
   // Mobile bottom nav (5 tabs: All, Today, Upcoming, Completed, Stats)
   if (bottomNav) {
     const mobileTabs = [
-      { id: 'all',       label: 'All',       icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+      { id: 'all',       label: 'Home',      icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
       { id: 'today',     label: 'Today',     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' },
       { id: 'upcoming',  label: 'Upcoming',  icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
       { id: 'completed', label: 'Done',      icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' },
@@ -426,6 +437,7 @@ function renderCategoryTabs() {
 
     bottomNav.innerHTML = mobileTabs.map(t => `
       <button class="bottom-nav-item${t.id === activeCategory ? ' active' : ''}" data-nav="${t.id}">
+        <span class="bottom-nav-dot"></span>
         <span class="bottom-nav-icon">${t.icon}</span>
         <span class="bottom-nav-label">${t.label}</span>
       </button>
@@ -952,7 +964,80 @@ function createTaskElement(task) {
   item.addEventListener('dragleave', handleDragLeave);
   item.addEventListener('dragend', handleDragEnd);
 
+  // Long-press action menu (mobile, 500ms)
+  let longPressTimer = null;
+  let longPressFired = false;
+  item.addEventListener('touchstart', (e) => {
+    longPressFired = false;
+    longPressTimer = setTimeout(() => {
+      longPressFired = true;
+      showLongPressMenu(task, e.touches[0].clientX, e.touches[0].clientY);
+    }, 500);
+  }, { passive: true });
+  item.addEventListener('touchmove', () => {
+    clearTimeout(longPressTimer);
+  }, { passive: true });
+  item.addEventListener('touchend', (e) => {
+    clearTimeout(longPressTimer);
+    if (longPressFired) {
+      e.preventDefault();
+    }
+  });
+
   return item;
+}
+
+// ============================================
+//  LONG-PRESS CONTEXT MENU
+// ============================================
+function showLongPressMenu(task, x, y) {
+  // Remove any existing menu
+  dismissLongPressMenu();
+
+  // Haptic feedback if available
+  if (navigator.vibrate) navigator.vibrate(30);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'longpress-overlay';
+  overlay.addEventListener('click', dismissLongPressMenu);
+  overlay.addEventListener('touchstart', dismissLongPressMenu, { passive: true });
+
+  const menu = document.createElement('div');
+  menu.className = 'longpress-menu';
+
+  // Position menu near the touch point
+  const menuWidth = 160;
+  const menuHeight = 156; // ~3 items × 52px
+  let left = Math.min(x, window.innerWidth - menuWidth - 16);
+  let top = Math.min(y, window.innerHeight - menuHeight - 16);
+  left = Math.max(16, left);
+  top = Math.max(16, top);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+
+  const actions = [
+    { label: '✏️ Edit', action: () => { dismissLongPressMenu(); toggleEditMode(task); } },
+    { label: task.completed ? '↩️ Undo' : '✅ Complete', action: () => { dismissLongPressMenu(); toggleTask(task.id); } },
+    { label: '🗑️ Delete', action: () => { dismissLongPressMenu(); deleteTask(task.id); }, danger: true }
+  ];
+
+  actions.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'longpress-menu-item' + (a.danger ? ' danger' : '');
+    btn.textContent = a.label;
+    btn.addEventListener('click', a.action);
+    menu.appendChild(btn);
+  });
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(menu);
+}
+
+function dismissLongPressMenu() {
+  const overlay = document.querySelector('.longpress-overlay');
+  const menu = document.querySelector('.longpress-menu');
+  if (overlay) overlay.remove();
+  if (menu) menu.remove();
 }
 
 
@@ -1247,8 +1332,11 @@ function renderTasks() {
   completedPercentEl.textContent = pct + '%';
   if (progressBarInner) progressBarInner.style.width = pct + '%';
   
+  if (mobileProgPct) {
+    mobileProgPct.textContent = pct + '%';
+  }
   if (mobileProgCount) {
-    mobileProgCount.textContent = `${completedCount} of ${totalTasks} tasks`;
+    mobileProgCount.textContent = `${completedCount} of ${totalTasks} tasks completed today`;
   }
   if (mobileProgFill) {
     mobileProgFill.style.width = pct + '%';
@@ -1346,23 +1434,26 @@ if (menuBtn && sidebar && sidebarOverlay) {
 
 // Mobile Bottom Sheet / FAB
 if (fabBtn && bottomSheet && sheetOverlay) {
-  const toggleSheet = () => {
-    bottomSheet.classList.toggle('active');
-    sheetOverlay.classList.toggle('active');
+  const openSheet = () => {
+    bottomSheet.classList.add('active');
+    sheetOverlay.classList.add('active');
   };
-  fabBtn.addEventListener('click', toggleSheet);
-  sheetOverlay.addEventListener('click', toggleSheet);
+  const closeSheet = () => {
+    bottomSheet.classList.remove('active');
+    sheetOverlay.classList.remove('active');
+  };
+  fabBtn.addEventListener('click', openSheet);
+  sheetOverlay.addEventListener('click', closeSheet);
+  if (sheetCloseBtn) sheetCloseBtn.addEventListener('click', closeSheet);
   
-  // Sheet drag handle to close
-  const handle = bottomSheet.querySelector('.sheet-handle');
-  if (handle) {
-    handle.addEventListener('click', toggleSheet);
-    let startY = 0;
-    handle.addEventListener('touchstart', e => startY = e.touches[0].clientY, { passive: true });
-    handle.addEventListener('touchend', e => {
-      if (e.changedTouches[0].clientY > startY + 30) toggleSheet();
-    }, { passive: true });
-  }
+  // Sheet drag to dismiss (threshold 100px)
+  let sheetStartY = 0;
+  bottomSheet.addEventListener('touchstart', e => {
+    sheetStartY = e.touches[0].clientY;
+  }, { passive: true });
+  bottomSheet.addEventListener('touchend', e => {
+    if (e.changedTouches[0].clientY > sheetStartY + 100) closeSheet();
+  }, { passive: true });
 }
 
 // Add Task from Bottom Sheet
