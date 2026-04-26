@@ -450,10 +450,9 @@ function renderAppearanceTab(container) {
         <span class="settings-section-title" style="margin-bottom: 12px; display: block;">CUSTOM COLORS</span>
         <div class="custom-accent-container" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
           <div class="add-custom-color-btn" style="position: relative; width: 40px; height: 40px;">
-            <button class="color-swatch-plus" title="Add custom color" style="width: 40px; height: 40px; border-radius: 50%; border: 2px dashed var(--color-text-muted); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-muted); transition: all 0.2s;">
+            <button id="open-custom-picker-btn" class="color-swatch-plus" title="Add custom color" style="width: 40px; height: 40px; border-radius: 50%; border: 2px dashed var(--color-text-muted); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--color-text-muted); transition: all 0.2s;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-            <input type="color" id="custom-accent-input" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" title="Add custom color">
           </div>
           <div id="custom-swatches-row" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
             <!-- Custom swatches injected here -->
@@ -552,7 +551,7 @@ function renderAppearanceTab(container) {
 
   // CUSTOM COLORS LOGIC
   const customSwatchesRow = container.querySelector('#custom-swatches-row');
-  const customAccentInput = container.querySelector('#custom-accent-input');
+  const openPickerBtn = container.querySelector('#open-custom-picker-btn');
   
   let customColors = JSON.parse(localStorage.getItem('customAccentColors') || '[]');
   let editingIndex = -1;
@@ -562,7 +561,8 @@ function renderAppearanceTab(container) {
       <button class="color-swatch custom-swatch ${currentAccent === color ? 'active' : ''}" 
               style="background-color: ${color};" 
               data-color="${color}" 
-              data-index="${index}">
+              data-index="${index}"
+              type="button">
          ${currentAccent === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
       </button>
     `).join('');
@@ -570,118 +570,297 @@ function renderAppearanceTab(container) {
     const swatches = customSwatchesRow.querySelectorAll('.custom-swatch');
     swatches.forEach(swatch => {
       let pressTimer;
+      let startX, startY;
       const index = parseInt(swatch.dataset.index);
       const color = swatch.dataset.color;
 
-      // Click to apply
       swatch.addEventListener('click', (e) => {
-        if (e.detail > 1) return; // Ignore double clicks if needed
+        e.preventDefault();
+        e.stopPropagation();
         applyColor(color);
       });
 
-      // Context menu for Edit/Remove
       swatch.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        showContextMenu(e.pageX, e.pageY, index, color);
+        showContextMenu(swatch, index, color);
       });
 
-      // Long press for mobile
-      swatch.addEventListener('touchstart', (e) => {
-        pressTimer = setTimeout(() => showContextMenu(e.touches[0].pageX, e.touches[0].pageY, index, color), 600);
-      }, {passive: true});
+      const startLongPress = (e) => {
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.pageX;
+        startY = touch.pageY;
+        pressTimer = setTimeout(() => showContextMenu(swatch, index, color), 600);
+      };
+
+      const cancelLongPress = (e) => {
+        const touch = e.changedTouches ? e.changedTouches[0] : e;
+        if (pressTimer) {
+          const diffX = Math.abs(touch.pageX - startX);
+          const diffY = Math.abs(touch.pageY - startY);
+          if (diffX > 5 || diffY > 5) clearTimeout(pressTimer);
+        }
+      };
+
+      swatch.addEventListener('touchstart', startLongPress, {passive: true});
+      swatch.addEventListener('touchmove', cancelLongPress, {passive: true});
       swatch.addEventListener('touchend', () => clearTimeout(pressTimer));
+      swatch.addEventListener('mousedown', startLongPress);
+      swatch.addEventListener('mousemove', cancelLongPress);
+      swatch.addEventListener('mouseup', () => clearTimeout(pressTimer));
+      swatch.addEventListener('mouseleave', () => clearTimeout(pressTimer));
     });
   };
 
   const applyColor = (color) => {
     localStorage.setItem('accentColor', color);
     document.documentElement.style.setProperty('--color-accent', color);
-    // Refresh UI
-    renderTab(); 
+    const activeSwatches = container.querySelectorAll('.color-swatch');
+    activeSwatches.forEach(s => {
+      s.classList.toggle('active', s.dataset.color === color);
+      s.innerHTML = s.dataset.color === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : '';
+    });
   };
 
-  const showContextMenu = (x, y, index, color) => {
-    // Remove existing
+  const showContextMenu = (target, index, color) => {
     const existing = document.querySelector('.color-context-menu');
     if (existing) existing.remove();
 
     const menu = document.createElement('div');
     menu.className = 'color-context-menu';
+    const rect = target.getBoundingClientRect();
+    
     menu.style.cssText = `
       position: fixed;
-      top: ${y}px;
-      left: ${x}px;
+      top: ${rect.top - 80}px;
+      left: ${rect.left + rect.width/2 - 60}px;
+      width: 120px;
       background: var(--color-surface);
       border: 1px solid var(--color-border);
       border-radius: 8px;
       padding: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       z-index: 10000;
-      min-width: 100px;
     `;
 
     menu.innerHTML = `
-      <div class="menu-item" id="edit-color" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary);">Edit</div>
-      <div class="menu-item" id="remove-color" style="padding: 8px 12px; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-danger);">Remove</div>
+      <div class="menu-item" id="edit-color" style="height: 36px; padding: 0 12px; display: flex; align-items: center; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-text-primary); transition: background 0.2s;">🎨 Edit</div>
+      <div class="menu-item" id="remove-color" style="height: 36px; padding: 0 12px; display: flex; align-items: center; cursor: pointer; border-radius: 4px; font-size: 0.85rem; font-weight: 600; color: var(--color-danger); transition: background 0.2s;">🗑️ Remove</div>
     `;
 
     document.body.appendChild(menu);
 
-    // Adjust position if it goes off screen
-    const rect = menu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 10) + 'px';
-    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
+    const closeMenu = (e) => {
+      if (!menu.contains(e.target) || e.key === 'Escape') {
+        menu.remove();
+        document.removeEventListener('mousedown', closeMenu);
+        document.removeEventListener('keydown', closeMenu);
+      }
+    };
+    document.addEventListener('mousedown', closeMenu);
+    document.addEventListener('keydown', closeMenu);
 
     menu.querySelector('#edit-color').addEventListener('click', () => {
       editingIndex = index;
-      customAccentInput.value = color;
-      customAccentInput.click();
+      openColorPicker(color);
       menu.remove();
     });
 
     menu.querySelector('#remove-color').addEventListener('click', () => {
-      customColors.splice(index, 1);
-      localStorage.setItem('customAccentColors', JSON.stringify(customColors));
-      renderCustomSwatches();
+      target.style.transition = 'opacity 0.2s, transform 0.2s';
+      target.style.opacity = '0';
+      target.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        customColors.splice(index, 1);
+        localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+        if (color === localStorage.getItem('accentColor')) {
+          applyColor('#2563eb');
+        }
+        renderCustomSwatches();
+      }, 200);
       menu.remove();
     });
-
-    const closeMenu = (e) => {
-      if (!menu.contains(e.target)) {
-        menu.remove();
-        document.removeEventListener('mousedown', closeMenu);
-      }
-    };
-    document.addEventListener('mousedown', closeMenu);
   };
 
-  customAccentInput.addEventListener('input', (e) => {
-    const val = e.target.value;
-    if (editingIndex === -1) {
-      // Just preview maybe? User said "picked and confirmed"
-    }
-  });
+  const openColorPicker = (initialColor = '#2563eb') => {
+    const existing = document.querySelector('.custom-color-picker-overlay');
+    if (existing) existing.remove();
 
-  customAccentInput.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (editingIndex !== -1) {
-      customColors[editingIndex] = val;
-      editingIndex = -1;
-    } else {
-      // Add new
-      if (customColors.includes(val)) {
-        // Already exists, just apply
-      } else {
-        if (customColors.length >= 5) {
-          customColors.shift(); // Remove oldest
-        }
-        customColors.push(val);
+    const overlay = document.createElement('div');
+    overlay.className = 'custom-color-picker-overlay';
+    overlay.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10001;';
+    
+    const picker = document.createElement('div');
+    const rect = openPickerBtn.getBoundingClientRect();
+    picker.style.cssText = `
+      position: fixed;
+      bottom: ${window.innerHeight - rect.top + 10}px;
+      left: ${Math.max(10, Math.min(window.innerWidth - 250, rect.left - 100))}px;
+      width: 240px;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      transform: scale(0.9);
+      opacity: 0;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    `;
+
+    let currentHex = initialColor;
+    let h = 210, s = 80, l = 50;
+
+    const updateFromHex = (hex) => {
+      let r = 0, g = 0, b = 0;
+      if (hex.length === 4) {
+        r = parseInt(hex[1] + hex[1], 16);
+        g = parseInt(hex[2] + hex[2], 16);
+        b = parseInt(hex[3] + hex[3], 16);
+      } else if (hex.length === 7) {
+        r = parseInt(hex.substring(1, 3), 16);
+        g = parseInt(hex.substring(3, 5), 16);
+        b = parseInt(hex.substring(5, 7), 16);
       }
-    }
-    localStorage.setItem('customAccentColors', JSON.stringify(customColors));
-    applyColor(val);
-    renderCustomSwatches();
-  });
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      l = (max + min) / 2;
+      if (max === min) { h = s = 0; } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      h *= 360; s *= 100; l *= 100;
+    };
+
+    updateFromHex(currentHex);
+
+    picker.innerHTML = `
+      <div id="sl-box" style="width: 100%; height: 150px; border-radius: 8px; position: relative; cursor: crosshair; background: linear-gradient(to bottom, transparent, #000), linear-gradient(to right, #fff, transparent);">
+        <div id="sl-cursor" style="position: absolute; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 1px rgba(0,0,0,0.5);"></div>
+      </div>
+      <div id="hue-slider" style="width: 100%; height: 16px; border-radius: 8px; cursor: pointer; background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%); position: relative;">
+        <div id="hue-thumb" style="position: absolute; top: -2px; width: 20px; height: 20px; background: #fff; border: 2px solid var(--color-border); border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transform: translateX(-50%);"></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div id="preview-circle" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--color-border); background: ${currentHex};"></div>
+        <input type="text" id="hex-input" value="${currentHex}" style="flex: 1; height: 36px; padding: 0 8px; background: var(--color-bg); border: 1.5px solid var(--color-border); border-radius: 6px; color: var(--color-text-primary); font-family: monospace; outline: none;">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+        <button id="picker-cancel" style="padding: 6px 12px; border-radius: 6px; border: none; background: var(--color-btn-secondary); color: var(--color-text-secondary); font-weight: 600; cursor: pointer;">Cancel</button>
+        <button id="picker-add" style="padding: 6px 12px; border-radius: 6px; border: none; background: var(--color-accent); color: #fff; font-weight: 600; cursor: pointer;">${editingIndex === -1 ? 'Add' : 'Save'}</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.appendChild(picker);
+    requestAnimationFrame(() => { picker.style.transform = 'scale(1)'; picker.style.opacity = '1'; });
+
+    const slBox = picker.querySelector('#sl-box');
+    const slCursor = picker.querySelector('#sl-cursor');
+    const hueSlider = picker.querySelector('#hue-slider');
+    const hueThumb = picker.querySelector('#hue-thumb');
+    const hexInput = picker.querySelector('#hex-input');
+    const preview = picker.querySelector('#preview-circle');
+
+    const updateUI = () => {
+      slBox.style.backgroundColor = `hsl(${h}, 100%, 50%)`;
+      slCursor.style.left = `${s}%`;
+      slCursor.style.top = `${100 - l}%`;
+      hueThumb.style.left = `${(h / 360) * 100}%`;
+      
+      const rgb = hslToRgb(h / 360, s / 100, l / 100);
+      currentHex = rgbToHex(rgb[0], rgb[1], rgb[2]);
+      hexInput.value = currentHex;
+      preview.style.backgroundColor = currentHex;
+    };
+
+    const hslToRgb = (h, s, l) => {
+      let r, g, b;
+      if (s === 0) { r = g = b = l; } else {
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1; if (t > 1) t -= 1;
+          if (t < 1/6) return p + (q - p) * 6 * t;
+          if (t < 1/2) return q;
+          if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+          return p;
+        };
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    };
+
+    const rgbToHex = (r, g, b) => '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+
+    const handleSlMove = (e) => {
+      const rect = slBox.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+      s = x * 100;
+      l = 100 - y * 100;
+      updateUI();
+    };
+
+    const handleHueMove = (e) => {
+      const rect = hueSlider.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      h = x * 360;
+      updateUI();
+    };
+
+    const startDrag = (handler) => (e) => {
+      handler(e);
+      const move = (me) => handler(me);
+      const up = () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+    };
+
+    slBox.addEventListener('mousedown', startDrag(handleSlMove));
+    hueSlider.addEventListener('mousedown', startDrag(handleHueMove));
+
+    hexInput.addEventListener('input', (e) => {
+      const val = e.target.value;
+      if (/^#[0-9A-F]{6}$/i.test(val) || /^#[0-9A-F]{3}$/i.test(val)) {
+        updateFromHex(val);
+        updateUI();
+      }
+    });
+
+    const close = () => { overlay.remove(); editingIndex = -1; };
+    picker.querySelector('#picker-cancel').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); }, {once: true});
+
+    picker.querySelector('#picker-add').addEventListener('click', () => {
+      if (editingIndex !== -1) {
+        customColors[editingIndex] = currentHex;
+      } else {
+        if (!customColors.includes(currentHex)) {
+          if (customColors.length >= 5) customColors.shift();
+          customColors.push(currentHex);
+        }
+      }
+      localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+      applyColor(currentHex);
+      renderCustomSwatches();
+      close();
+    });
+
+    updateUI();
+  };
+
+  openPickerBtn.addEventListener('click', () => openColorPicker());
 
   renderCustomSwatches();
 }
