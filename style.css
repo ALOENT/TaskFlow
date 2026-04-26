@@ -690,12 +690,14 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 
 .input-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 12px;
 }
 
 .input-row input {
   flex: 1;
+  min-width: 200px;
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
   padding: 10px 14px;
@@ -719,6 +721,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 
 .input-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -747,6 +750,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 
 .input-details {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   padding-top: 12px;
