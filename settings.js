@@ -508,15 +508,8 @@ function renderAppearanceTab(container) {
   const swatches = container.querySelectorAll('.color-swatch');
   swatches.forEach(swatch => {
     swatch.addEventListener('click', () => {
-      swatches.forEach(s => {
-        s.classList.remove('active');
-        s.innerHTML = '';
-      });
-      swatch.classList.add('active');
-      swatch.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
       const val = swatch.dataset.color;
-      localStorage.setItem('accentColor', val);
-      document.documentElement.style.setProperty('--color-accent', val);
+      applyColor(val);
     });
   });
 
@@ -569,55 +562,35 @@ function renderAppearanceTab(container) {
 
     const swatches = customSwatchesRow.querySelectorAll('.custom-swatch');
     swatches.forEach(swatch => {
-      let pressTimer;
-      let startX, startY;
       const index = parseInt(swatch.dataset.index);
       const color = swatch.dataset.color;
 
       swatch.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        applyColor(color);
-      });
 
-      swatch.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        showContextMenu(swatch, index, color);
-      });
-
-      const startLongPress = (e) => {
-        const touch = e.touches ? e.touches[0] : e;
-        startX = touch.pageX;
-        startY = touch.pageY;
-        pressTimer = setTimeout(() => showContextMenu(swatch, index, color), 600);
-      };
-
-      const cancelLongPress = (e) => {
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        if (pressTimer) {
-          const diffX = Math.abs(touch.pageX - startX);
-          const diffY = Math.abs(touch.pageY - startY);
-          if (diffX > 5 || diffY > 5) clearTimeout(pressTimer);
+        const currentAccent = localStorage.getItem('accentColor');
+        if (currentAccent === color) {
+          // If already selected, show options
+          showContextMenu(swatch, index, color);
+        } else {
+          // Otherwise just select
+          applyColor(color);
         }
-      };
-
-      swatch.addEventListener('touchstart', startLongPress, {passive: true});
-      swatch.addEventListener('touchmove', cancelLongPress, {passive: true});
-      swatch.addEventListener('touchend', () => clearTimeout(pressTimer));
-      swatch.addEventListener('mousedown', startLongPress);
-      swatch.addEventListener('mousemove', cancelLongPress);
-      swatch.addEventListener('mouseup', () => clearTimeout(pressTimer));
-      swatch.addEventListener('mouseleave', () => clearTimeout(pressTimer));
+      });
     });
   };
 
   const applyColor = (color) => {
     localStorage.setItem('accentColor', color);
     document.documentElement.style.setProperty('--color-accent', color);
-    const activeSwatches = container.querySelectorAll('.color-swatch');
-    activeSwatches.forEach(s => {
-      s.classList.toggle('active', s.dataset.color === color);
-      s.innerHTML = s.dataset.color === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : '';
+    
+    // Select ALL swatches (standard + custom)
+    const allSwatches = container.querySelectorAll('.color-swatch');
+    allSwatches.forEach(s => {
+      const isActive = s.dataset.color === color;
+      s.classList.toggle('active', isActive);
+      s.innerHTML = isActive ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : '';
     });
   };
 
