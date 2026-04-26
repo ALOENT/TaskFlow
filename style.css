@@ -1142,10 +1142,6 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   margin-bottom: -12px; /* Pull label closer to input */
 }
 
-.sheet-form input[type="text"], .sheet-form select {
-  /* Styles are now handled by the consolidated rule at line 753 */
-}
-
 .sheet-row {
   display: flex;
   gap: 16px;
