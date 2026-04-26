@@ -509,8 +509,25 @@ function renderAppearanceTab(container) {
       } else {
         document.documentElement.setAttribute('data-theme', val);
       }
+      // Sync Top Bar Icon
+      window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: val } }));
     });
   });
+
+  // Sync back from Top Bar Toggle
+  const syncThemeUI = () => {
+    const currentTheme = localStorage.getItem('theme') || 'system';
+    themeCards.forEach(c => c.classList.toggle('active', c.dataset.themeVal === currentTheme));
+  };
+  window.addEventListener('themeChanged', syncThemeUI);
+  // Clean up listener when pane is removed
+  const observer = new MutationObserver((mutations) => {
+    if (!document.body.contains(container)) {
+      window.removeEventListener('themeChanged', syncThemeUI);
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 
   const swatches = container.querySelectorAll('.color-swatch');
   swatches.forEach(swatch => {
