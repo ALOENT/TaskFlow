@@ -3,6 +3,7 @@ import {
   updateProfile, 
   ref, uploadBytesResumable, getDownloadURL,
   collection, query, where, onSnapshot, getDocs,
+  addDoc, deleteDoc, writeBatch, doc,
   onAuthStateChanged
 } from './firebase-config.js';
 
@@ -103,6 +104,9 @@ function renderTab() {
       break;
     case 'notifications':
       renderNotificationsTab(pane);
+      break;
+    case 'data':
+      renderDataTab(pane);
       break;
     default:
       pane.innerHTML = `<div class="settings-section"><h3>${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3><p>Coming soon...</p></div>`;
@@ -957,4 +961,239 @@ function renderNotificationsTab(container) {
       renderTab(); // Re-render to update badge/button
     });
   }
+}
+
+// ============================================
+//  TAB 4 — DATA
+// ============================================
+function renderDataTab(container) {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const completedCount = tasks.filter(t => t.completed).length;
+  const totalCount = tasks.length;
+  const estimatedSize = (totalCount * 0.5).toFixed(1);
+
+  container.innerHTML = `
+    <div class="settings-section">
+      <span class="settings-section-title">Storage Usage</span>
+      <div class="storage-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; margin-top: 12px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);">${totalCount} tasks</span>
+          <span style="font-size: 0.8rem; color: var(--color-text-muted);">~${estimatedSize} KB used</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: var(--color-bg); border-radius: 4px; overflow: hidden;">
+          <div style="width: ${Math.min(100, (totalCount/1000)*100)}%; height: 100%; background: var(--color-accent); transition: width 0.5s ease;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Export Data</span>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+        <button id="export-json-btn" class="secondary-btn" style="width: 100%; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export JSON
+        </button>
+        <button id="export-csv-btn" class="secondary-btn" style="width: 100%; justify-content: center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title">Import Data</span>
+      <button id="import-json-trigger" class="secondary-btn" style="width: 100%; justify-content: center; margin-top: 12px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import from JSON
+      </button>
+      <input type="file" id="import-json-input" accept=".json" style="display: none;">
+    </div>
+
+    <div class="settings-section">
+      <span class="settings-section-title" style="color: var(--color-danger);">Cleanup</span>
+      <div style="background: var(--color-danger-bg); border: 1px solid var(--color-danger); border-radius: var(--radius-lg); padding: 16px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
+        <span style="font-size: 0.85rem; color: var(--color-danger); font-weight: 500;">You have ${completedCount} completed tasks</span>
+        <button id="clear-completed-btn" class="secondary-btn" style="border-color: var(--color-danger); color: var(--color-danger); background: transparent; width: fit-content;">
+          Clear All Completed
+        </button>
+      </div>
+    </div>
+  `;
+
+  // --- Export JSON ---
+  container.querySelector('#export-json-btn').addEventListener('click', () => {
+    const data = {
+      exportDate: new Date().toISOString(),
+      totalTasks: tasks.length,
+      tasks: tasks.map(({ id, ...rest }) => rest)
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.json`);
+    showToast('JSON Export successful!', 'success');
+  });
+
+  // --- Export CSV ---
+  container.querySelector('#export-csv-btn').addEventListener('click', () => {
+    const headers = ['Title', 'Category', 'Priority', 'Completed', 'ReminderTime', 'Recurrence', 'Notes', 'CreatedAt'];
+    const rows = tasks.map(t => [
+      `"${(t.title || '').replace(/"/g, '""')}"`,
+      t.category || '',
+      t.priority || '',
+      t.completed || false,
+      t.reminderTime || '',
+      t.recurrence || '',
+      `"${(t.notes || '').replace(/"/g, '""')}"`,
+      t.createdAt?.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt || '')
+    ]);
+    
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.csv`);
+    showToast('CSV Export successful!', 'success');
+  });
+
+  // --- Import JSON ---
+  const importInput = container.querySelector('#import-json-input');
+  container.querySelector('#import-json-trigger').addEventListener('click', () => importInput.click());
+
+  importInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (!data.tasks || !Array.isArray(data.tasks)) {
+          showToast('File format not recognized', 'error');
+          return;
+        }
+        showImportPreview(data.tasks);
+      } catch (err) {
+        showToast('Invalid file format', 'error');
+      }
+    };
+    reader.readAsText(file);
+    importInput.value = ''; // Reset for next time
+  });
+
+  // --- Clear Completed ---
+  container.querySelector('#clear-completed-btn').addEventListener('click', () => {
+    if (completedCount === 0) {
+      showToast('No completed tasks to clear', 'info');
+      return;
+    }
+    showConfirmDialog({
+      title: 'Delete completed tasks?',
+      body: `This will permanently delete ${completedCount} completed tasks. This cannot be undone.`,
+      confirmText: 'Delete',
+      confirmClass: 'danger',
+      onConfirm: async () => {
+        try {
+          const batch = writeBatch(db);
+          const completedTasks = tasks.filter(t => t.completed);
+          completedTasks.forEach(t => {
+            const taskRef = doc(db, 'users', user.uid, 'tasks', t.id);
+            batch.delete(taskRef);
+          });
+          await batch.commit();
+          showToast(`${completedCount} tasks deleted`, 'success');
+          renderTab(); // Refresh
+        } catch (err) {
+          showToast('Failed to delete tasks', 'error');
+        }
+      }
+    });
+  });
+}
+
+function downloadFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function showConfirmDialog({ title, body, confirmText, confirmClass, onConfirm }) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.innerHTML = `
+    <div class="modal-card" style="max-width: 400px; padding: 24px;">
+      <h3 style="margin-bottom: 12px; color: var(--color-text-primary);">${title}</h3>
+      <p style="margin-bottom: 24px; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.5;">${body}</p>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="confirm-cancel" class="secondary-btn">Cancel</button>
+        <button id="confirm-ok" class="primary-btn ${confirmClass === 'danger' ? 'danger' : ''}" 
+                style="${confirmClass === 'danger' ? 'background: var(--color-danger); border-color: var(--color-danger);' : ''}">
+          ${confirmText}
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#confirm-cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#confirm-ok').addEventListener('click', () => {
+    onConfirm();
+    overlay.remove();
+  });
+}
+
+function showImportPreview(importedTasks) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  const previewList = importedTasks.slice(0, 3).map(t => `<li style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 4px;">• ${t.title || 'Untitled'}</li>`).join('');
+  
+  overlay.innerHTML = `
+    <div class="modal-card" style="max-width: 400px; padding: 24px;">
+      <h3 style="margin-bottom: 12px;">Import Data</h3>
+      <p style="margin-bottom: 12px; font-weight: 600;">Found ${importedTasks.length} tasks to import</p>
+      <ul style="list-style: none; margin-bottom: 20px;">
+        ${previewList}
+        ${importedTasks.length > 3 ? `<li style="font-size: 0.8rem; color: var(--color-text-muted); font-style: italic;">...and ${importedTasks.length - 3} more</li>` : ''}
+      </ul>
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="import-cancel" class="secondary-btn">Cancel</button>
+        <button id="import-ok" class="primary-btn">Import All</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#import-cancel').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('#import-ok').addEventListener('click', async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    const okBtn = overlay.querySelector('#import-ok');
+    okBtn.disabled = true;
+    okBtn.textContent = 'Importing...';
+
+    try {
+      const batch = writeBatch(db);
+      importedTasks.forEach(t => {
+        const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
+        // Strip any existing ID if present
+        const { id, ...cleanTask } = t;
+        batch.set(newRef, {
+          ...cleanTask,
+          createdAt: serverTimestamp()
+        });
+      });
+      await batch.commit();
+      showToast(`${importedTasks.length} tasks imported successfully`, 'success');
+      overlay.remove();
+      renderTab();
+    } catch (err) {
+      showToast('Import failed', 'error');
+      okBtn.disabled = false;
+      okBtn.textContent = 'Import All';
+    }
+  });
 }
