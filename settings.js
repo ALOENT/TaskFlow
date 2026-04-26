@@ -4,7 +4,7 @@ import {
   ref, uploadBytesResumable, getDownloadURL,
   collection, query, where, onSnapshot, getDocs,
   addDoc, deleteDoc, writeBatch, doc,
-  onAuthStateChanged
+  onAuthStateChanged, serverTimestamp
 } from './firebase-config.js';
 
 // DOM Refs
@@ -18,6 +18,14 @@ const tabButtons      = document.querySelectorAll('.settings-tab-btn');
 let activeTab = 'profile';
 let tasks = []; 
 let unsubscribeTasks = null;
+let currentModal = null;
+
+function closeCurrentModal() {
+  if (currentModal) {
+    currentModal.remove();
+    currentModal = null;
+  }
+}
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -84,6 +92,7 @@ function closeSettings() {
 
 function switchTab(tabId) {
   activeTab = tabId;
+  closeCurrentModal(); // Ensure modals close on tab switch
   tabButtons.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
@@ -992,83 +1001,195 @@ function renderDataTab(container) {
   const estimatedSize = (totalCount * 0.5).toFixed(1);
 
   container.innerHTML = `
+    <!-- Storage Usage -->
     <div class="settings-section">
-      <span class="settings-section-title">Storage Usage</span>
-      <div class="storage-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; margin-top: 12px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-          <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary);">${totalCount} tasks</span>
-          <span style="font-size: 0.8rem; color: var(--color-text-muted);">~${estimatedSize} KB used</span>
-        </div>
-        <div style="width: 100%; height: 8px; background: var(--color-bg); border-radius: 4px; overflow: hidden;">
-          <div style="width: ${Math.min(100, (totalCount/1000)*100)}%; height: 100%; background: var(--color-accent); transition: width 0.5s ease;"></div>
+      <div class="storage-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px;">
+        <div class="storage-icon" style="width: 56px; height: 56px; border-radius: 12px; background: rgba(37, 99, 235, 0.1); display: flex; align-items: center; justify-content: center; font-size: 24px;">📦</div>
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;">
+            <span style="font-size: 1.8rem; font-weight: 800; color: var(--color-accent);">${totalCount}</span>
+            <span style="font-size: 0.9rem; font-weight: 600; color: var(--color-text-secondary);">tasks saved</span>
+          </div>
+          <div style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 12px;">~${estimatedSize} KB estimated</div>
+          <div style="width: 100%; height: 6px; background: var(--color-bg); border-radius: 10px; overflow: hidden;">
+            <div style="width: ${Math.min(100, (totalCount/1000)*100)}%; height: 100%; background: var(--color-accent); border-radius: 10px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Export Section -->
     <div class="settings-section">
-      <span class="settings-section-title">Export Data</span>
+      <span class="settings-section-title" style="letter-spacing: 0.05em; font-size: 0.75rem; color: var(--color-text-muted);">EXPORT DATA</span>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
-        <button id="export-json-btn" class="secondary-btn" style="width: 100%; justify-content: center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export JSON
+        <button id="export-json-btn" class="data-action-btn">
+          <span class="btn-content">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export JSON
+          </span>
+          <div class="spinner hidden"></div>
         </button>
-        <button id="export-csv-btn" class="secondary-btn" style="width: 100%; justify-content: center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export CSV
+        <button id="export-csv-btn" class="data-action-btn">
+          <span class="btn-content">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </span>
+          <div class="spinner hidden"></div>
         </button>
       </div>
     </div>
 
+    <!-- Import Section -->
     <div class="settings-section">
-      <span class="settings-section-title">Import Data</span>
-      <button id="import-json-trigger" class="secondary-btn" style="width: 100%; justify-content: center; margin-top: 12px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Import from JSON
-      </button>
+      <span class="settings-section-title" style="letter-spacing: 0.05em; font-size: 0.75rem; color: var(--color-text-muted);">IMPORT DATA</span>
+      <div style="display: flex; justify-content: center; margin-top: 12px;">
+        <button id="import-json-trigger" class="data-action-btn" style="width: 100%;">
+          <span class="btn-content">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import from JSON
+          </span>
+        </button>
+      </div>
       <input type="file" id="import-json-input" accept=".json" style="display: none;">
     </div>
 
+    <!-- Cleanup Section -->
     <div class="settings-section">
-      <span class="settings-section-title" style="color: var(--color-danger);">Cleanup</span>
-      <div style="background: var(--color-danger-bg); border: 1px solid var(--color-danger); border-radius: var(--radius-lg); padding: 16px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px;">
-        <span style="font-size: 0.85rem; color: var(--color-danger); font-weight: 500;">You have ${completedCount} completed tasks</span>
-        <button id="clear-completed-btn" class="secondary-btn" style="border-color: var(--color-danger); color: var(--color-danger); background: transparent; width: fit-content;">
+      <span class="settings-section-title" style="color: var(--color-danger); letter-spacing: 0.05em; font-size: 0.75rem;">CLEANUP</span>
+      <div style="background: rgba(220, 38, 38, 0.05); border: 1px solid rgba(220, 38, 38, 0.2); border-radius: 16px; padding: 20px; margin-top: 12px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+        <span style="font-size: 0.9rem; color: var(--color-text-primary); font-weight: 500;">You have <strong style="color: var(--color-danger);">${completedCount}</strong> completed tasks</span>
+        <button id="clear-completed-btn" class="data-action-btn danger" ${completedCount === 0 ? 'disabled' : ''} style="width: 100%; max-width: 240px;">
           Clear All Completed
         </button>
       </div>
     </div>
+
+    <style>
+      .data-action-btn {
+        height: 48px;
+        border-radius: 12px;
+        border: 1px solid var(--color-accent);
+        background: transparent;
+        color: var(--color-accent);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      .data-action-btn:hover:not(:disabled) {
+        background: var(--color-accent);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+      }
+      .data-action-btn:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      .data-action-btn:disabled {
+        border-color: var(--color-border);
+        color: var(--color-text-muted);
+        cursor: not-allowed;
+      }
+      .data-action-btn.danger {
+        border-color: var(--color-danger);
+        color: var(--color-danger);
+      }
+      .data-action-btn.danger:hover:not(:disabled) {
+        background: var(--color-danger);
+        color: white;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+      }
+      .btn-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .hidden { display: none; }
+    </style>
   `;
 
   // --- Export JSON ---
-  container.querySelector('#export-json-btn').addEventListener('click', () => {
-    const data = {
-      exportDate: new Date().toISOString(),
-      totalTasks: tasks.length,
-      tasks: tasks.map(({ id, ...rest }) => rest)
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.json`);
-    showToast('JSON Export successful!', 'success');
+  const jsonBtn = container.querySelector('#export-json-btn');
+  jsonBtn.addEventListener('click', async () => {
+    const content = jsonBtn.querySelector('.btn-content');
+    const spinner = jsonBtn.querySelector('.spinner');
+    
+    try {
+      content.classList.add('hidden');
+      spinner.classList.remove('hidden');
+      
+      const data = {
+        exportDate: new Date().toISOString(),
+        totalTasks: tasks.length,
+        tasks: tasks.map(({ id, createdAt, ...rest }) => ({
+          ...rest,
+          createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt
+        }))
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.json`);
+      showToast('JSON Export started', 'success');
+    } catch (err) {
+      showToast('Export failed', 'error');
+    } finally {
+      content.classList.remove('hidden');
+      spinner.classList.add('hidden');
+    }
   });
 
   // --- Export CSV ---
-  container.querySelector('#export-csv-btn').addEventListener('click', () => {
-    const headers = ['Title', 'Category', 'Priority', 'Completed', 'ReminderTime', 'Recurrence', 'Notes', 'CreatedAt'];
-    const rows = tasks.map(t => [
-      `"${(t.title || '').replace(/"/g, '""')}"`,
-      t.category || '',
-      t.priority || '',
-      t.completed || false,
-      t.reminderTime || '',
-      t.recurrence || '',
-      `"${(t.notes || '').replace(/"/g, '""')}"`,
-      t.createdAt?.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt || '')
-    ]);
+  const csvBtn = container.querySelector('#export-csv-btn');
+  csvBtn.addEventListener('click', async () => {
+    const content = csvBtn.querySelector('.btn-content');
+    const spinner = csvBtn.querySelector('.spinner');
     
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.csv`);
-    showToast('CSV Export successful!', 'success');
+    try {
+      content.classList.add('hidden');
+      spinner.classList.remove('hidden');
+      
+      const headers = ['Title', 'Category', 'Priority', 'Completed', 'ReminderTime', 'Recurrence', 'Notes', 'CreatedAt'];
+      
+      const escapeCSV = (val) => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val);
+        return `"${str.replace(/"/g, '""')}"`;
+      };
+
+      const rows = tasks.map(t => [
+        escapeCSV(t.title || t.text || ''),
+        escapeCSV(t.category || ''),
+        escapeCSV(t.priority || ''),
+        escapeCSV(t.completed || false),
+        escapeCSV(t.reminderTime || ''),
+        escapeCSV(t.recurrence || ''),
+        escapeCSV(t.notes || ''),
+        escapeCSV(t.createdAt?.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt || ''))
+      ]);
+      
+      const csvString = [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+      const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+      downloadFile(blob, `taskflow_export_${new Date().toISOString().split('T')[0]}.csv`);
+      showToast('CSV Export started', 'success');
+    } catch (err) {
+      showToast('Export failed', 'error');
+    } finally {
+      content.classList.remove('hidden');
+      spinner.classList.add('hidden');
+    }
   });
 
   // --- Import JSON ---
@@ -1082,44 +1203,55 @@ function renderDataTab(container) {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const data = JSON.parse(event.target.result);
-        if (!data.tasks || !Array.isArray(data.tasks)) {
-          showToast('File format not recognized', 'error');
+        const raw = JSON.parse(event.target.result);
+        let imported = [];
+        
+        if (Array.isArray(raw)) {
+          imported = raw;
+        } else if (raw && Array.isArray(raw.tasks)) {
+          imported = raw.tasks;
+        } else {
+          throw new Error('Invalid structure');
+        }
+
+        if (imported.length === 0) {
+          showToast('No tasks found in file', 'info');
           return;
         }
-        showImportPreview(data.tasks);
+
+        showImportPreviewModal(imported);
       } catch (err) {
-        showToast('Invalid file format', 'error');
+        showToast('Invalid JSON file', 'error');
       }
     };
     reader.readAsText(file);
-    importInput.value = ''; // Reset for next time
+    importInput.value = ''; 
   });
 
   // --- Clear Completed ---
   container.querySelector('#clear-completed-btn').addEventListener('click', () => {
-    if (completedCount === 0) {
-      showToast('No completed tasks to clear', 'info');
-      return;
-    }
-    showConfirmDialog({
-      title: 'Delete completed tasks?',
-      body: `This will permanently delete ${completedCount} completed tasks. This cannot be undone.`,
-      confirmText: 'Delete',
+    if (completedCount === 0) return;
+    
+    showConfirmDialogModal({
+      title: 'Delete Completed Tasks?',
+      body: `This will permanently remove <strong>${completedCount}</strong> completed tasks. This action cannot be undone.`,
+      confirmText: 'Delete All',
       confirmClass: 'danger',
       onConfirm: async () => {
         try {
-          const batch = writeBatch(db);
           const completedTasks = tasks.filter(t => t.completed);
-          completedTasks.forEach(t => {
-            const taskRef = doc(db, 'users', user.uid, 'tasks', t.id);
-            batch.delete(taskRef);
-          });
-          await batch.commit();
-          showToast(`${completedCount} tasks deleted`, 'success');
-          renderTab(); // Refresh
+          // Split into chunks of 500
+          for (let i = 0; i < completedTasks.length; i += 500) {
+            const batch = writeBatch(db);
+            const chunk = completedTasks.slice(i, i + 500);
+            chunk.forEach(t => {
+              batch.delete(doc(db, 'users', user.uid, 'tasks', t.id));
+            });
+            await batch.commit();
+          }
+          showToast('Tasks cleared', 'success');
         } catch (err) {
-          showToast('Failed to delete tasks', 'error');
+          showToast('Failed to clear tasks', 'error');
         }
       }
     });
@@ -1133,84 +1265,132 @@ function downloadFile(blob, filename) {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
 }
 
-function showConfirmDialog({ title, body, confirmText, confirmClass, onConfirm }) {
+function showConfirmDialogModal({ title, body, confirmText, confirmClass, onConfirm }) {
+  closeCurrentModal();
+  
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay active';
+  overlay.style.cssText = 'backdrop-filter: blur(8px); background: rgba(0,0,0,0.4);';
+  
   overlay.innerHTML = `
-    <div class="modal-card" style="max-width: 400px; padding: 24px;">
-      <h3 style="margin-bottom: 12px; color: var(--color-text-primary);">${title}</h3>
-      <p style="margin-bottom: 24px; color: var(--color-text-secondary); font-size: 0.9rem; line-height: 1.5;">${body}</p>
-      <div style="display: flex; justify-content: flex-end; gap: 12px;">
-        <button id="confirm-cancel" class="secondary-btn">Cancel</button>
-        <button id="confirm-ok" class="primary-btn ${confirmClass === 'danger' ? 'danger' : ''}" 
-                style="${confirmClass === 'danger' ? 'background: var(--color-danger); border-color: var(--color-danger);' : ''}">
-          ${confirmText}
+    <div class="modal-card" style="max-width: 400px; width: 90%; border-radius: 20px; overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+      <div style="padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text-primary);">${title}</h3>
+        <button id="modal-close-x" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+      <div style="padding: 0 24px 24px; color: var(--color-text-secondary); font-size: 0.95rem; line-height: 1.6;">
+        ${body}
+      </div>
+      <div style="padding: 16px 24px 24px; display: flex; gap: 12px; background: var(--color-bg-alt);">
+        <button id="modal-cancel" class="data-action-btn" style="flex: 1; border-color: var(--color-border); color: var(--color-text-secondary);">Cancel</button>
+        <button id="modal-ok" class="data-action-btn ${confirmClass === 'danger' ? 'danger' : ''}" style="flex: 1;">${confirmText}</button>
+      </div>
     </div>
+    <style>
+      @keyframes modalPop { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    </style>
   `;
+  
   document.body.appendChild(overlay);
+  currentModal = overlay;
 
-  overlay.querySelector('#confirm-cancel').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('#confirm-ok').addEventListener('click', () => {
+  const close = () => closeCurrentModal();
+  overlay.querySelector('#modal-close-x').addEventListener('click', close);
+  overlay.querySelector('#modal-cancel').addEventListener('click', close);
+  overlay.querySelector('#modal-ok').addEventListener('click', () => {
     onConfirm();
-    overlay.remove();
+    close();
   });
 }
 
-function showImportPreview(importedTasks) {
+function showImportPreviewModal(importedTasks) {
+  closeCurrentModal();
+  
+  const previewData = importedTasks.slice(0, 3).map(t => {
+    const title = t.title || t.text || 'Untitled Task';
+    return `<div style="padding: 10px 12px; background: var(--color-bg); border-radius: 8px; border: 1px solid var(--color-border); margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${title}</div>`;
+  }).join('');
+
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay active';
-  const previewList = importedTasks.slice(0, 3).map(t => `<li style="font-size: 0.85rem; color: var(--color-text-secondary); margin-bottom: 4px;">• ${t.title || 'Untitled'}</li>`).join('');
+  overlay.style.cssText = 'backdrop-filter: blur(8px); background: rgba(0,0,0,0.4);';
   
   overlay.innerHTML = `
-    <div class="modal-card" style="max-width: 400px; padding: 24px;">
-      <h3 style="margin-bottom: 12px;">Import Data</h3>
-      <p style="margin-bottom: 12px; font-weight: 600;">Found ${importedTasks.length} tasks to import</p>
-      <ul style="list-style: none; margin-bottom: 20px;">
-        ${previewList}
-        ${importedTasks.length > 3 ? `<li style="font-size: 0.8rem; color: var(--color-text-muted); font-style: italic;">...and ${importedTasks.length - 3} more</li>` : ''}
-      </ul>
-      <div style="display: flex; justify-content: flex-end; gap: 12px;">
-        <button id="import-cancel" class="secondary-btn">Cancel</button>
-        <button id="import-ok" class="primary-btn">Import All</button>
+    <div class="modal-card" style="max-width: 400px; width: 90%; border-radius: 20px; overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+      <div style="padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text-primary);">Import Tasks</h3>
+        <button id="modal-close-x" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding: 0 24px 24px;">
+        <p style="margin: 0 0 16px; font-weight: 600; color: var(--color-text-primary);">Found ${importedTasks.length} tasks to import</p>
+        <div style="margin-bottom: 4px;">${previewData}</div>
+        ${importedTasks.length > 3 ? `<div style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-top: 12px;">...and ${importedTasks.length - 3} more tasks</div>` : ''}
+      </div>
+      <div style="padding: 16px 24px 24px; display: flex; gap: 12px; background: var(--color-bg-alt);">
+        <button id="modal-cancel" class="data-action-btn" style="flex: 1; border-color: var(--color-border); color: var(--color-text-secondary);">Cancel</button>
+        <button id="modal-ok" class="data-action-btn" style="flex: 1;">Import All</button>
       </div>
     </div>
   `;
+  
   document.body.appendChild(overlay);
+  currentModal = overlay;
 
-  overlay.querySelector('#import-cancel').addEventListener('click', () => overlay.remove());
-  overlay.querySelector('#import-ok').addEventListener('click', async () => {
+  const close = () => closeCurrentModal();
+  overlay.querySelector('#modal-close-x').addEventListener('click', close);
+  overlay.querySelector('#modal-cancel').addEventListener('click', close);
+  overlay.querySelector('#modal-ok').addEventListener('click', async () => {
     const user = auth.currentUser;
     if (!user) return;
     
-    const okBtn = overlay.querySelector('#import-ok');
-    okBtn.disabled = true;
-    okBtn.textContent = 'Importing...';
+    const btn = overlay.querySelector('#modal-ok');
+    btn.disabled = true;
+    btn.textContent = 'Importing...';
 
     try {
-      const batch = writeBatch(db);
-      importedTasks.forEach(t => {
-        const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
-        // Strip any existing ID if present
-        const { id, ...cleanTask } = t;
-        batch.set(newRef, {
-          ...cleanTask,
-          createdAt: serverTimestamp()
+      const now = Date.now();
+      // Process in batches of 500
+      for (let i = 0; i < importedTasks.length; i += 500) {
+        const batch = writeBatch(db);
+        const chunk = importedTasks.slice(i, i + 500);
+        
+        chunk.forEach((t, idx) => {
+          const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
+          const clean = {
+            title: t.title || t.text || 'Imported Task',
+            category: t.category || 'other',
+            priority: t.priority || 'medium',
+            notes: t.notes || '',
+            recurrence: t.recurrence || 'none',
+            completed: false,
+            notificationId: null,
+            reminderTime: null,
+            createdAt: serverTimestamp(),
+            order: now + i + idx
+          };
+          if (t.subtasks) clean.subtasks = t.subtasks;
+          batch.set(newRef, clean);
         });
-      });
-      await batch.commit();
-      showToast(`${importedTasks.length} tasks imported successfully`, 'success');
-      overlay.remove();
-      renderTab();
+        
+        await batch.commit();
+      }
+      showToast(`${importedTasks.length} tasks imported`, 'success');
+      close();
     } catch (err) {
       showToast('Import failed', 'error');
-      okBtn.disabled = false;
-      okBtn.textContent = 'Import All';
+      btn.disabled = false;
+      btn.textContent = 'Import All';
     }
   });
 }
+
