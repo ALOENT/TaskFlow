@@ -2505,6 +2505,174 @@ input:checked + .slider:before {
   transform: translateX(20px);
 }
 
+/* --- TF MODAL SYSTEM --- */
+.tf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  padding: 20px;
+}
+
+.tf-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tf-modal-card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+.tf-modal-overlay.active .tf-modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.tf-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+
+.tf-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.tf-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.tf-modal-close:hover {
+  background: var(--color-border);
+}
+
+.tf-modal-body {
+  padding: 16px 20px;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.tf-modal-task-list {
+  margin: 12px 0 0;
+  padding: 12px;
+  background: var(--color-bg);
+  border-radius: 8px;
+  list-style: none;
+}
+
+.tf-modal-task-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tf-modal-task-list li:last-child {
+  border-bottom: none;
+}
+
+.tf-modal-more {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+  font-style: italic;
+  text-align: center;
+}
+
+.tf-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 0 20px 20px;
+  justify-content: flex-end;
+}
+
+.tf-btn-secondary {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex: 1;
+}
+
+.tf-btn-secondary:hover {
+  background: var(--color-bg);
+}
+
+.tf-btn-primary {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: var(--color-accent);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex: 1;
+}
+
+.tf-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.tf-btn-danger {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex: 1;
+}
+
+.tf-btn-danger:hover {
+  opacity: 0.9;
+}
+
+
 .slider.round {
   border-radius: 24px;
 }

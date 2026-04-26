@@ -18,14 +18,30 @@ const tabButtons      = document.querySelectorAll('.settings-tab-btn');
 let activeTab = 'profile';
 let tasks = []; 
 let unsubscribeTasks = null;
-let currentModal = null;
 
-function closeCurrentModal() {
-  if (currentModal) {
-    currentModal.remove();
-    currentModal = null;
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
   }
 }
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+}
+
+// Global modal listeners
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal('import-modal');
+    closeModal('delete-modal');
+  }
+});
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -92,7 +108,8 @@ function closeSettings() {
 
 function switchTab(tabId) {
   activeTab = tabId;
-  closeCurrentModal(); // Ensure modals close on tab switch
+  closeModal('import-modal');
+  closeModal('delete-modal');
   tabButtons.forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tabId);
   });
@@ -1132,11 +1149,20 @@ function renderDataTab(container) {
       spinner.classList.remove('hidden');
       
       const data = {
+        exportVersion: "1.0",
         exportDate: new Date().toISOString(),
         totalTasks: tasks.length,
-        tasks: tasks.map(({ id, createdAt, ...rest }) => ({
-          ...rest,
-          createdAt: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt
+        tasks: tasks.map(t => ({
+          id: t.id,
+          title: t.text || t.title || "",
+          notes: t.notes || "",
+          category: t.category || "other",
+          priority: t.priority || "none",
+          completed: t.completed || false,
+          subtasks: t.subtasks || [],
+          recurrence: t.recurrence || "none",
+          reminderTime: t.reminderTime || null,
+          createdAt: t.createdAt?.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt || null)
         }))
       };
       
@@ -1170,12 +1196,12 @@ function renderDataTab(container) {
       };
 
       const rows = tasks.map(t => [
-        escapeCSV(t.title || t.text || ''),
-        escapeCSV(t.category || ''),
-        escapeCSV(t.priority || ''),
+        escapeCSV(t.text || t.title || ''),
+        escapeCSV(t.category || 'other'),
+        escapeCSV(t.priority || 'none'),
         escapeCSV(t.completed || false),
         escapeCSV(t.reminderTime || ''),
-        escapeCSV(t.recurrence || ''),
+        escapeCSV(t.recurrence || 'none'),
         escapeCSV(t.notes || ''),
         escapeCSV(t.createdAt?.toDate ? t.createdAt.toDate().toISOString() : (t.createdAt || ''))
       ]);
@@ -1219,7 +1245,7 @@ function renderDataTab(container) {
           return;
         }
 
-        showImportPreviewModal(imported);
+        showImportModal(imported);
       } catch (err) {
         showToast('Invalid JSON file', 'error');
       }
@@ -1232,27 +1258,21 @@ function renderDataTab(container) {
   container.querySelector('#clear-completed-btn').addEventListener('click', () => {
     if (completedCount === 0) return;
     
-    showConfirmDialogModal({
-      title: 'Delete Completed Tasks?',
-      body: `This will permanently remove <strong>${completedCount}</strong> completed tasks. This action cannot be undone.`,
-      confirmText: 'Delete All',
-      confirmClass: 'danger',
-      onConfirm: async () => {
-        try {
-          const completedTasks = tasks.filter(t => t.completed);
-          // Split into chunks of 500
-          for (let i = 0; i < completedTasks.length; i += 500) {
-            const batch = writeBatch(db);
-            const chunk = completedTasks.slice(i, i + 500);
-            chunk.forEach(t => {
-              batch.delete(doc(db, 'users', user.uid, 'tasks', t.id));
-            });
-            await batch.commit();
-          }
-          showToast('Tasks cleared', 'success');
-        } catch (err) {
-          showToast('Failed to clear tasks', 'error');
+    showDeleteModal(completedCount, async () => {
+      try {
+        const user = auth.currentUser;
+        const completedTasks = tasks.filter(t => t.completed);
+        for (let i = 0; i < completedTasks.length; i += 500) {
+          const batch = writeBatch(db);
+          const chunk = completedTasks.slice(i, i + 500);
+          chunk.forEach(t => {
+            batch.delete(doc(db, 'users', user.uid, 'tasks', t.id));
+          });
+          await batch.commit();
         }
+        showToast('Tasks cleared', 'success');
+      } catch (err) {
+        showToast('Failed to clear tasks', 'error');
       }
     });
   });
@@ -1271,95 +1291,88 @@ function downloadFile(blob, filename) {
   }, 100);
 }
 
-function showConfirmDialogModal({ title, body, confirmText, confirmClass, onConfirm }) {
-  closeCurrentModal();
-  
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay active';
-  overlay.style.cssText = 'backdrop-filter: blur(8px); background: rgba(0,0,0,0.4);';
-  
-  overlay.innerHTML = `
-    <div class="modal-card" style="max-width: 400px; width: 90%; border-radius: 20px; overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
-      <div style="padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text-primary);">${title}</h3>
-        <button id="modal-close-x" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+function showDeleteModal(count, onConfirm) {
+  let modal = document.getElementById('delete-modal');
+  if (modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.className = 'tf-modal-overlay';
+  modal.id = 'delete-modal';
+  modal.innerHTML = `
+    <div class="tf-modal-card">
+      <div class="tf-modal-header">
+        <h3 class="tf-modal-title">Delete Tasks</h3>
+        <button class="tf-modal-close">✕</button>
       </div>
-      <div style="padding: 0 24px 24px; color: var(--color-text-secondary); font-size: 0.95rem; line-height: 1.6;">
-        ${body}
+      <div class="tf-modal-body">
+        This will permanently remove <strong>${count}</strong> completed tasks. This action cannot be undone.
       </div>
-      <div style="padding: 16px 24px 24px; display: flex; gap: 12px; background: var(--color-bg-alt);">
-        <button id="modal-cancel" class="data-action-btn" style="flex: 1; border-color: var(--color-border); color: var(--color-text-secondary);">Cancel</button>
-        <button id="modal-ok" class="data-action-btn ${confirmClass === 'danger' ? 'danger' : ''}" style="flex: 1;">${confirmText}</button>
+      <div class="tf-modal-footer">
+        <button class="tf-btn-secondary">Cancel</button>
+        <button class="tf-btn-danger">Delete All</button>
       </div>
     </div>
-    <style>
-      @keyframes modalPop { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    </style>
   `;
-  
-  document.body.appendChild(overlay);
-  currentModal = overlay;
+  document.body.appendChild(modal);
 
-  const close = () => closeCurrentModal();
-  overlay.querySelector('#modal-close-x').addEventListener('click', close);
-  overlay.querySelector('#modal-cancel').addEventListener('click', close);
-  overlay.querySelector('#modal-ok').addEventListener('click', () => {
+  modal.querySelector('.tf-modal-close').onclick = () => closeModal('delete-modal');
+  modal.querySelector('.tf-btn-secondary').onclick = () => closeModal('delete-modal');
+  modal.querySelector('.tf-btn-danger').onclick = () => {
     onConfirm();
-    close();
-  });
+    closeModal('delete-modal');
+  };
+  modal.onclick = (e) => { if (e.target === modal) closeModal('delete-modal'); };
+  
+  setTimeout(() => openModal('delete-modal'), 10);
 }
 
-function showImportPreviewModal(importedTasks) {
-  closeCurrentModal();
-  
-  const previewData = importedTasks.slice(0, 3).map(t => {
+function showImportModal(importedTasks) {
+  let modal = document.getElementById('import-modal');
+  if (modal) modal.remove();
+
+  const previewList = importedTasks.slice(0, 3).map(t => {
     const title = t.title || t.text || 'Untitled Task';
-    return `<div style="padding: 10px 12px; background: var(--color-bg); border-radius: 8px; border: 1px solid var(--color-border); margin-bottom: 8px; font-size: 0.85rem; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">• ${title}</div>`;
+    return `<li>• ${escapeHtml(title)}</li>`;
   }).join('');
 
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay active';
-  overlay.style.cssText = 'backdrop-filter: blur(8px); background: rgba(0,0,0,0.4);';
-  
-  overlay.innerHTML = `
-    <div class="modal-card" style="max-width: 400px; width: 90%; border-radius: 20px; overflow: hidden; animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
-      <div style="padding: 24px 24px 16px; display: flex; justify-content: space-between; align-items: center;">
-        <h3 style="margin: 0; font-size: 1.2rem; color: var(--color-text-primary);">Import Tasks</h3>
-        <button id="modal-close-x" style="background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+  modal = document.createElement('div');
+  modal.className = 'tf-modal-overlay';
+  modal.id = 'import-modal';
+  modal.innerHTML = `
+    <div class="tf-modal-card">
+      <div class="tf-modal-header">
+        <h3 class="tf-modal-title">Import Tasks</h3>
+        <button class="tf-modal-close">✕</button>
       </div>
-      <div style="padding: 0 24px 24px;">
-        <p style="margin: 0 0 16px; font-weight: 600; color: var(--color-text-primary);">Found ${importedTasks.length} tasks to import</p>
-        <div style="margin-bottom: 4px;">${previewData}</div>
-        ${importedTasks.length > 3 ? `<div style="font-size: 0.8rem; color: var(--color-text-muted); text-align: center; margin-top: 12px;">...and ${importedTasks.length - 3} more tasks</div>` : ''}
+      <div class="tf-modal-body">
+        Found <strong>${importedTasks.length}</strong> tasks to import.
+        <ul class="tf-modal-task-list">
+          ${previewList}
+        </ul>
+        ${importedTasks.length > 3 ? `<div class="tf-modal-more">...and ${importedTasks.length - 3} more tasks</div>` : ''}
       </div>
-      <div style="padding: 16px 24px 24px; display: flex; gap: 12px; background: var(--color-bg-alt);">
-        <button id="modal-cancel" class="data-action-btn" style="flex: 1; border-color: var(--color-border); color: var(--color-text-secondary);">Cancel</button>
-        <button id="modal-ok" class="data-action-btn" style="flex: 1;">Import All</button>
+      <div class="tf-modal-footer">
+        <button class="tf-btn-secondary">Cancel</button>
+        <button class="tf-btn-primary">Import All</button>
       </div>
     </div>
   `;
-  
-  document.body.appendChild(overlay);
-  currentModal = overlay;
+  document.body.appendChild(modal);
 
-  const close = () => closeCurrentModal();
-  overlay.querySelector('#modal-close-x').addEventListener('click', close);
-  overlay.querySelector('#modal-cancel').addEventListener('click', close);
-  overlay.querySelector('#modal-ok').addEventListener('click', async () => {
+  modal.querySelector('.tf-modal-close').onclick = () => closeModal('import-modal');
+  modal.querySelector('.tf-btn-secondary').onclick = () => closeModal('import-modal');
+  modal.onclick = (e) => { if (e.target === modal) closeModal('import-modal'); };
+
+  modal.querySelector('.tf-btn-primary').onclick = async () => {
     const user = auth.currentUser;
     if (!user) return;
     
-    const btn = overlay.querySelector('#modal-ok');
+    const btn = modal.querySelector('.tf-btn-primary');
     btn.disabled = true;
     btn.textContent = 'Importing...';
 
     try {
       const now = Date.now();
-      // Process in batches of 500
       for (let i = 0; i < importedTasks.length; i += 500) {
         const batch = writeBatch(db);
         const chunk = importedTasks.slice(i, i + 500);
@@ -1367,9 +1380,9 @@ function showImportPreviewModal(importedTasks) {
         chunk.forEach((t, idx) => {
           const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
           const clean = {
-            title: t.title || t.text || 'Imported Task',
+            text: t.title || t.text || 'Imported Task',
             category: t.category || 'other',
-            priority: t.priority || 'medium',
+            priority: t.priority || 'none',
             notes: t.notes || '',
             recurrence: t.recurrence || 'none',
             completed: false,
@@ -1381,16 +1394,18 @@ function showImportPreviewModal(importedTasks) {
           if (t.subtasks) clean.subtasks = t.subtasks;
           batch.set(newRef, clean);
         });
-        
         await batch.commit();
       }
       showToast(`${importedTasks.length} tasks imported`, 'success');
-      close();
+      closeModal('import-modal');
     } catch (err) {
       showToast('Import failed', 'error');
       btn.disabled = false;
       btn.textContent = 'Import All';
     }
-  });
+  };
+  
+  setTimeout(() => openModal('import-modal'), 10);
 }
+
 
