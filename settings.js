@@ -98,6 +98,9 @@ function renderTab() {
     case 'profile':
       renderProfileTab(pane);
       break;
+    case 'appearance':
+      renderAppearanceTab(pane);
+      break;
     default:
       pane.innerHTML = `<div class="settings-section"><h3>${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3><p>Coming soon...</p></div>`;
   }
@@ -389,7 +392,146 @@ export function showToast(message, type = 'info') {
   }, 3000);
 }
 
+// ============================================
+//  TAB 2 — APPEARANCE
+// ============================================
+function renderAppearanceTab(container) {
+  const currentTheme = localStorage.getItem('theme') || localStorage.getItem('taskflow-theme') || 'system';
+  const currentAccent = localStorage.getItem('accentColor') || '#2563eb';
+  const currentFontSize = localStorage.getItem('fontSize') || '15';
+  const currentSidebarPos = localStorage.getItem('sidebarPosition') || 'left';
 
+  container.innerHTML = `
+    <div class="settings-section">
+      <span class="settings-section-title">Theme Selection</span>
+      <div class="appearance-grid theme-grid">
+        <div class="appearance-card theme-card ${currentTheme === 'light' ? 'active' : ''}" data-theme-val="light">
+          <div class="theme-preview light-preview">
+             <div class="preview-header"></div><div class="preview-body"></div>
+          </div>
+          <span>Light</span>
+        </div>
+        <div class="appearance-card theme-card ${currentTheme === 'dark' ? 'active' : ''}" data-theme-val="dark">
+          <div class="theme-preview dark-preview">
+             <div class="preview-header"></div><div class="preview-body"></div>
+          </div>
+          <span>Dark</span>
+        </div>
+        <div class="appearance-card theme-card ${currentTheme === 'system' ? 'active' : ''}" data-theme-val="system">
+          <div class="theme-preview system-preview">
+             <div class="preview-header"></div><div class="preview-body"></div>
+          </div>
+          <span>System</span>
+        </div>
+      </div>
+    </div>
 
+    <div class="settings-section">
+      <span class="settings-section-title">Accent Color</span>
+      <div class="accent-swatches">
+        ${[
+          { color: '#2563eb', name: 'Blue' },
+          { color: '#7c3aed', name: 'Purple' },
+          { color: '#16a34a', name: 'Green' },
+          { color: '#dc2626', name: 'Red' },
+          { color: '#ea580c', name: 'Orange' },
+          { color: '#db2777', name: 'Pink' }
+        ].map(c => `
+          <button class="color-swatch ${currentAccent === c.color ? 'active' : ''}" 
+                  style="background-color: ${c.color};" 
+                  data-color="${c.color}" 
+                  aria-label="${c.name}">
+             ${currentAccent === c.color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+          </button>
+        `).join('')}
+      </div>
+    </div>
 
+    <div class="settings-section">
+      <span class="settings-section-title">Font Size</span>
+      <div class="font-size-pills">
+        <button class="font-size-pill ${currentFontSize === '13' ? 'active' : ''}" data-size="13">Small</button>
+        <button class="font-size-pill ${currentFontSize === '15' ? 'active' : ''}" data-size="15">Medium</button>
+        <button class="font-size-pill ${currentFontSize === '17' ? 'active' : ''}" data-size="17">Large</button>
+      </div>
+    </div>
 
+    <div class="settings-section desktop-only-section">
+      <span class="settings-section-title">Sidebar Position (Desktop)</span>
+      <div class="appearance-grid sidebar-grid">
+        <div class="appearance-card sidebar-pos-card ${currentSidebarPos === 'left' ? 'active' : ''}" data-pos="left">
+          <div class="layout-preview left-preview">
+             <div class="preview-side"></div><div class="preview-main"></div>
+          </div>
+          <span>Left</span>
+        </div>
+        <div class="appearance-card sidebar-pos-card ${currentSidebarPos === 'right' ? 'active' : ''}" data-pos="right">
+          <div class="layout-preview right-preview">
+             <div class="preview-main"></div><div class="preview-side"></div>
+          </div>
+          <span>Right</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const themeCards = container.querySelectorAll('.theme-card');
+  themeCards.forEach(card => {
+    card.addEventListener('click', () => {
+      themeCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const val = card.dataset.themeVal;
+      localStorage.setItem('theme', val);
+      if (val === 'system') {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      } else {
+        document.documentElement.setAttribute('data-theme', val);
+      }
+    });
+  });
+
+  const swatches = container.querySelectorAll('.color-swatch');
+  swatches.forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      swatches.forEach(s => {
+        s.classList.remove('active');
+        s.innerHTML = '';
+      });
+      swatch.classList.add('active');
+      swatch.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+      const val = swatch.dataset.color;
+      localStorage.setItem('accentColor', val);
+      document.documentElement.style.setProperty('--color-accent', val);
+    });
+  });
+
+  const fontPills = container.querySelectorAll('.font-size-pill');
+  fontPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      fontPills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      const val = pill.dataset.size;
+      localStorage.setItem('fontSize', val);
+      document.documentElement.style.setProperty('--base-font-size', val + 'px');
+    });
+  });
+
+  const sidebarCards = container.querySelectorAll('.sidebar-pos-card');
+  sidebarCards.forEach(card => {
+    card.addEventListener('click', () => {
+      sidebarCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const val = card.dataset.pos;
+      localStorage.setItem('sidebarPosition', val);
+      const layoutWrapper = document.querySelector('.layout-wrapper');
+      if (layoutWrapper) {
+        if (val === 'right') {
+          layoutWrapper.classList.add('sidebar-right');
+        } else {
+          layoutWrapper.classList.remove('sidebar-right');
+        }
+      }
+    });
+  });
+}
