@@ -6,7 +6,7 @@ import {
   addDoc, deleteDoc, writeBatch, doc,
   onAuthStateChanged, serverTimestamp,
   updatePassword, reauthenticateWithCredential, EmailAuthProvider,
-  signOut
+  signOut, googleProvider, signInWithPopup
 } from './firebase-config.js';
 
 // DOM Refs
@@ -1415,7 +1415,7 @@ function showImportModal(importedTasks) {
 
 
 // ============================================
-//  TAB 5 — ACCOUNT
+//  TAB 5 — ACCOUNT (REDESIGN)
 // ============================================
 function renderAccountTab(container) {
   const user = auth.currentUser;
@@ -1425,233 +1425,278 @@ function renderAccountTab(container) {
   const creationDate = user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Unknown';
 
   container.innerHTML = `
-    <!-- Account Info Card -->
+    <!-- Section 1 — Account Info Card -->
     <div class="settings-section">
-      <div class="account-info-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px;">
-        <div class="user-avatar" style="width: 64px; height: 64px; border-radius: 50%; background: var(--color-accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700;">
+      <div class="account-premium-card" style="position: relative; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 16px; display: flex; align-items: center; gap: 16px; overflow: hidden;">
+        <!-- Auth Badge (Top Right) -->
+        <div style="position: absolute; top: 12px; right: 12px;">
+          ${isGoogle 
+            ? `<div class="auth-pill google" style="background: #4285F4; color: white; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Google
+              </div>`
+            : `<div class="auth-pill email" style="background: var(--color-bg); border: 1px solid var(--color-border); color: var(--color-text-muted); padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Email
+              </div>`
+          }
+        </div>
+
+        <div class="user-avatar-container" style="flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; background: var(--color-accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;">
           ${user.photoURL ? `<img src="${user.photoURL}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : (user.displayName ? user.displayName.charAt(0).toUpperCase() : '?')}
         </div>
-        <div style="flex: 1;">
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-            <h3 style="margin: 0; font-size: 1.1rem; color: var(--color-text-primary);">${user.email}</h3>
-            ${isGoogle 
-              ? `<span class="auth-badge google" style="background: rgba(66, 133, 244, 0.1); color: #4285f4; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 4px;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                  Google
-                </span>`
-              : `<span class="auth-badge email" style="background: var(--color-bg); color: var(--color-text-muted); padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">Email</span>`
-            }
-          </div>
-          <div style="font-size: 0.85rem; color: var(--color-text-muted);">Member since ${creationDate}</div>
+
+        <div class="user-details" style="display: flex; flex-direction: column; gap: 1px; padding-right: 60px;">
+          <span style="font-size: 18px; font-weight: 700; color: var(--color-text-primary); line-height: 1.2;">${user.displayName || 'TaskFlow User'}</span>
+          <span style="font-size: 14px; color: var(--color-text-muted);">${user.email}</span>
+          <span style="font-size: 12px; color: var(--color-text-muted); opacity: 0.8;">Member since ${creationDate}</span>
         </div>
       </div>
     </div>
 
-    <!-- Password Management -->
+    <!-- Section 2 — Security Card -->
     <div class="settings-section">
-      <span class="settings-section-title" style="letter-spacing: 0.05em; font-size: 0.75rem; color: var(--color-text-muted);">SECURITY</span>
-      <div style="margin-top: 12px;">
+      <span class="settings-section-title" style="letter-spacing: 0.08em; font-size: 11px; font-weight: 700; color: var(--color-text-muted);">SECURITY</span>
+      <div class="security-card" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 16px; margin-top: 10px;">
         ${isGoogle 
-          ? `<div style="background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 12px; padding: 16px; display: flex; gap: 12px; align-items: center;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              <div style="font-size: 0.9rem; color: var(--color-text-secondary); line-height: 1.4;">
-                Your password is managed by Google. Visit <a href="https://myaccount.google.com" target="_blank" style="color: var(--color-accent); text-decoration: none; font-weight: 600;">myaccount.google.com</a> to change it.
+          ? `<div style="background: rgba(66, 133, 244, 0.05); border-left: 4px solid #4285F4; border-radius: 8px; padding: 14px; display: flex; gap: 12px; align-items: flex-start;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <div style="font-size: 14px; color: var(--color-text-secondary); line-height: 1.5;">
+                <div style="font-weight: 700; color: var(--color-text-primary); margin-bottom: 2px;">Password managed by Google</div>
+                Your account is protected by Google. <a href="https://myaccount.google.com" target="_blank" style="color: #4285F4; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">Manage at myaccount.google.com <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg></a>
               </div>
             </div>`
-          : `<div id="password-form-container" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 20px;">
-              <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div class="input-group">
-                  <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">CURRENT PASSWORD</label>
-                  <div style="position: relative;">
-                    <input type="password" id="current-password" class="account-input" placeholder="••••••••">
-                    <button type="button" class="pw-toggle" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                  </div>
+          : `<div id="password-form" style="display: flex; flex-direction: column; gap: 16px;">
+              <div class="input-field">
+                <label style="font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">Current Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="cur-pw" class="premium-input" placeholder="••••••••" style="height: 48px;">
+                  <button type="button" class="pw-eye" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
                 </div>
-                <div class="input-group">
-                  <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">NEW PASSWORD</label>
-                  <div style="position: relative;">
-                    <input type="password" id="new-password" class="account-input" placeholder="Min. 8 characters">
-                    <button type="button" class="pw-toggle" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                  </div>
-                </div>
-                <div class="input-group">
-                  <label style="font-size: 0.8rem; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">CONFIRM NEW PASSWORD</label>
-                  <div style="position: relative;">
-                    <input type="password" id="confirm-password" class="account-input" placeholder="Repeat new password">
-                    <button type="button" class="pw-toggle" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; padding: 4px;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </button>
-                  </div>
-                </div>
-                <button id="update-password-btn" class="tf-btn-primary" style="margin-top: 4px; height: 48px; border-radius: 12px;">Update Password</button>
               </div>
+              <div class="input-field">
+                <label style="font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">New Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="new-pw" class="premium-input" placeholder="Min. 8 characters" style="height: 48px;">
+                  <button type="button" class="pw-eye" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+                <div id="new-pw-error" style="color: #ef4444; font-size: 11px; margin-top: 4px; display: none;">Password must be at least 8 characters</div>
+              </div>
+              <div class="input-field">
+                <label style="font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin-bottom: 6px; display: block;">Confirm New Password</label>
+                <div style="position: relative;">
+                  <input type="password" id="conf-pw" class="premium-input" placeholder="••••••••" style="height: 48px;">
+                  <button type="button" class="pw-eye" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--color-text-muted); cursor: pointer; display: flex;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                </div>
+                <div id="conf-pw-error" style="color: #ef4444; font-size: 11px; margin-top: 4px; display: none;">Passwords do not match</div>
+              </div>
+              <button id="update-pw-action" class="tf-btn-primary" style="height: 48px; border-radius: 12px; font-weight: 700; letter-spacing: 0.02em; margin-top: 4px;" disabled>Update Password</button>
             </div>`
         }
       </div>
     </div>
 
-    <!-- Danger Zone Card -->
+    <!-- Section 3 — Danger Zone Card -->
     <div class="settings-section">
-      <span class="settings-section-title" style="color: #ef4444; letter-spacing: 0.05em; font-size: 0.75rem;">DANGER ZONE</span>
-      <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid #ef4444; border-radius: 16px; padding: 24px; margin-top: 12px; display: flex; flex-direction: column; gap: 16px;">
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          <button id="account-signout-btn" class="tf-btn-secondary" style="height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            Sign Out
-          </button>
-          <button id="account-delete-btn" class="tf-btn-danger" style="height: 48px; border-radius: 12px;">Delete My Account</button>
+      <span class="settings-section-title" style="color: #ef4444; letter-spacing: 0.08em; font-size: 11px; font-weight: 700;">DANGER ZONE</span>
+      <div class="danger-premium-card" style="background: rgba(239, 68, 68, 0.03); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 16px; padding: 20px; margin-top: 10px;">
+        <!-- Sign Out Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; color: var(--color-text-secondary);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 16px; color: var(--color-text-primary);">Sign Out</div>
+              <div style="font-size: 13px; color: var(--color-text-muted);">Sign out of your account</div>
+            </div>
+          </div>
+          <button id="action-signout" class="tf-btn-secondary" style="height: 36px; padding: 0 16px; font-size: 14px; font-weight: 600; border-radius: 8px;">Sign Out</button>
+        </div>
+
+        <div style="height: 1px; background: rgba(239, 68, 68, 0.1); margin: 16px 0;"></div>
+
+        <!-- Delete Account Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 16px; color: #ef4444;">Delete Account</div>
+              <div style="font-size: 13px; color: var(--color-text-muted);">Permanently delete all your data</div>
+            </div>
+          </div>
+          <button id="action-delete" class="tf-btn-danger-outline" style="height: 36px; padding: 0 16px; font-size: 14px; font-weight: 600; border-radius: 8px; border: 1px solid #ef4444; color: #ef4444; background: transparent; transition: all 0.2s;">Delete</button>
         </div>
       </div>
     </div>
 
     <style>
-      .account-input {
+      .premium-input {
         width: 100%;
-        height: 44px;
         padding: 0 16px;
         border-radius: 10px;
         border: 1px solid var(--color-border);
         background: var(--color-bg);
         color: var(--color-text-primary);
-        font-size: 0.95rem;
-        transition: all 0.2s;
+        font-size: 15px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .account-input:focus {
+      .premium-input:focus {
         border-color: var(--color-accent);
         outline: none;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+      }
+      .tf-btn-danger-outline:hover {
+        background: #ef4444 !important;
+        color: white !important;
+      }
+      @media (max-width: 480px) {
+        .account-premium-card { padding: 12px; }
+        .danger-premium-card { padding: 16px; }
       }
     </style>
   `;
 
-  // --- Password Toggle Logic ---
-  container.querySelectorAll('.pw-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const input = btn.previousElementSibling;
-      const type = input.type === 'password' ? 'text' : 'password';
-      input.type = type;
-      btn.innerHTML = type === 'password' 
-        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
-        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  // --- Password Functionality ---
+  if (!isGoogle) {
+    const curInput = container.querySelector('#cur-pw');
+    const newInput = container.querySelector('#new-pw');
+    const confInput = container.querySelector('#conf-pw');
+    const newErr = container.querySelector('#new-pw-error');
+    const confErr = container.querySelector('#conf-pw-error');
+    const updateBtn = container.querySelector('#update-pw-action');
+
+    const validate = () => {
+      const v1 = newInput.value;
+      const v2 = confInput.value;
+      const cur = curInput.value;
+
+      let valid = true;
+      if (v1 && v1.length < 8) { newErr.style.display = 'block'; valid = false; } else { newErr.style.display = 'none'; }
+      if (v2 && v1 !== v2) { confErr.style.display = 'block'; valid = false; } else { confErr.style.display = 'none'; }
+      
+      updateBtn.disabled = !cur || !v1 || !v2 || v1.length < 8 || v1 !== v2;
+    };
+
+    [curInput, newInput, confInput].forEach(inp => inp.addEventListener('input', validate));
+
+    container.querySelectorAll('.pw-eye').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const inp = btn.previousElementSibling;
+        const type = inp.type === 'password' ? 'text' : 'password';
+        inp.type = type;
+        btn.innerHTML = type === 'password' 
+          ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+          : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+      });
     });
-  });
 
-  // --- Update Password Logic ---
-  const updatePwBtn = container.querySelector('#update-password-btn');
-  if (updatePwBtn) {
-    updatePwBtn.addEventListener('click', async () => {
-      const currentVal = container.querySelector('#current-password').value;
-      const newVal = container.querySelector('#new-password').value;
-      const confirmVal = container.querySelector('#confirm-password').value;
-
-      if (!currentVal) { showToast('Current password required', 'error'); return; }
-      if (newVal.length < 8) { showToast('New password must be at least 8 characters', 'error'); return; }
-      if (newVal !== confirmVal) { showToast('New passwords do not match', 'error'); return; }
-
-      updatePwBtn.disabled = true;
-      updatePwBtn.textContent = 'Updating...';
-
+    updateBtn.onclick = async () => {
+      updateBtn.disabled = true;
+      updateBtn.innerHTML = `<div class="loader-spinner" style="width: 20px; height: 20px; border-width: 3px;"></div>`;
       try {
-        const credential = EmailAuthProvider.credential(user.email, currentVal);
-        await reauthenticateWithCredential(user, credential);
-        await updatePassword(user, newVal);
+        const cred = EmailAuthProvider.credential(user.email, curInput.value);
+        await reauthenticateWithCredential(user, cred);
+        await updatePassword(user, newInput.value);
         showToast('Password updated successfully', 'success');
-        container.querySelector('#current-password').value = '';
-        container.querySelector('#new-password').value = '';
-        container.querySelector('#confirm-password').value = '';
+        curInput.value = newInput.value = confInput.value = '';
+        validate();
       } catch (err) {
         let msg = 'Failed to update password';
-        if (err.code === 'auth/wrong-password') msg = 'Incorrect current password';
-        if (err.code === 'auth/requires-recent-login') msg = 'Please sign in again to perform this action';
+        if (err.code === 'auth/wrong-password') msg = 'Incorrect password';
+        if (err.code === 'auth/requires-recent-login') msg = 'Please verify your identity first';
+        if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
         showToast(msg, 'error');
       } finally {
-        updatePwBtn.disabled = false;
-        updatePwBtn.textContent = 'Update Password';
+        updateBtn.innerHTML = 'Update Password';
+        validate();
       }
-    });
+    };
   }
 
   // --- Sign Out ---
-  container.querySelector('#account-signout-btn').addEventListener('click', async () => {
+  const signoutBtn = container.querySelector('#action-signout');
+  signoutBtn.onclick = async () => {
+    signoutBtn.disabled = true;
+    signoutBtn.textContent = 'Signing out...';
     try {
       await signOut(auth);
+      const theme = localStorage.getItem('theme');
       localStorage.clear();
+      if (theme) localStorage.setItem('theme', theme);
       window.location.reload();
     } catch (err) {
       showToast('Sign out failed', 'error');
+      signoutBtn.disabled = false;
+      signoutBtn.textContent = 'Sign Out';
     }
-  });
+  };
 
   // --- Delete Account ---
-  container.querySelector('#account-delete-btn').addEventListener('click', () => {
-    showAccountDeleteModal(tasks.length);
-  });
+  container.querySelector('#action-delete').onclick = () => {
+    showDeleteAccountModal();
+  };
 }
 
-function showAccountDeleteModal(taskCount) {
-  let modal = document.getElementById('account-delete-modal');
-  if (modal) modal.remove();
+function showDeleteAccountModal() {
+  const user = auth.currentUser;
+  if (!user) return;
 
-  modal = document.createElement('div');
+  let modal = document.createElement('div');
   modal.className = 'tf-modal-overlay';
-  modal.id = 'account-delete-modal';
+  modal.id = 'delete-account-modal';
   modal.innerHTML = `
     <div class="tf-modal-card">
       <div class="tf-modal-header">
-        <h3 class="tf-modal-title">Delete your account?</h3>
+        <h3 class="tf-modal-title">Delete Account</h3>
         <button class="tf-modal-close">✕</button>
       </div>
-      <div class="tf-modal-body">
-        <p style="margin-bottom: 12px;">This will permanently delete your account and all <strong>${taskCount}</strong> tasks. This action cannot be undone.</p>
-        <p style="font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 8px;">Type <strong>DELETE</strong> to confirm:</p>
-        <input type="text" id="confirm-delete-input" class="account-input" placeholder="Type DELETE" style="border-color: #ef4444;">
+      <div class="tf-modal-body" style="text-align: center; padding: 32px 24px;">
+        <div style="color: #ef4444; margin-bottom: 20px; animation: pulse 2s infinite;">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div style="color: #ef4444; font-weight: 700; font-size: 18px; margin-bottom: 8px;">This action cannot be undone</div>
+        <p style="color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 12px;">All your tasks (${tasks.length}) and account data will be permanently deleted from our servers.</p>
+        
+        <div style="margin-top: 24px; text-align: left;">
+          <label style="font-size: 12px; font-weight: 700; color: var(--color-text-muted); display: block; margin-bottom: 8px; text-transform: uppercase;">Type "DELETE" to confirm</label>
+          <input type="text" id="delete-confirm-inp" class="premium-input" placeholder="Type DELETE here" style="height: 48px; border-color: rgba(239, 68, 68, 0.3);">
+        </div>
       </div>
       <div class="tf-modal-footer">
-        <button class="tf-btn-secondary">Cancel</button>
-        <button id="confirm-account-delete-btn" class="tf-btn-danger" disabled>Delete Account</button>
+        <button class="tf-btn-secondary" id="delete-cancel-btn" style="flex: 1;">Cancel</button>
+        <button id="delete-confirm-btn" class="tf-btn-danger" style="flex: 1; height: 44px;" disabled>Delete Account</button>
       </div>
     </div>
   `;
   document.body.appendChild(modal);
 
-  const input = modal.querySelector('#confirm-delete-input');
-  const deleteBtn = modal.querySelector('#confirm-account-delete-btn');
+  const inp = modal.querySelector('#delete-confirm-inp');
+  const btn = modal.querySelector('#delete-confirm-btn');
+  const cancel = modal.querySelector('#delete-cancel-btn');
   const closeBtn = modal.querySelector('.tf-modal-close');
-  const cancelBtn = modal.querySelector('.tf-btn-secondary');
 
-  input.addEventListener('input', () => {
-    deleteBtn.disabled = input.value !== 'DELETE';
-  });
+  inp.addEventListener('input', () => { btn.disabled = inp.value !== 'DELETE'; });
 
   const close = () => {
     modal.classList.remove('active');
-    setTimeout(() => {
-      modal.remove();
-      document.body.style.overflow = '';
-    }, 200);
+    setTimeout(() => modal.remove(), 200);
   };
 
-  closeBtn.onclick = close;
-  cancelBtn.onclick = close;
+  cancel.onclick = closeBtn.onclick = close;
   modal.onclick = (e) => { if (e.target === modal) close(); };
 
-  deleteBtn.onclick = async () => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    deleteBtn.disabled = true;
-    deleteBtn.textContent = 'Deleting...';
-
+  btn.onclick = async () => {
+    btn.disabled = true;
+    btn.innerHTML = `<div class="loader-spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>`;
+    
     try {
-      // 1. Delete all tasks
+      // 1. Batch delete tasks
       for (let i = 0; i < tasks.length; i += 500) {
         const batch = writeBatch(db);
-        const chunk = tasks.slice(i, i + 500);
-        chunk.forEach(t => {
+        tasks.slice(i, i + 500).forEach(t => {
           batch.delete(doc(db, 'users', user.uid, 'tasks', t.id));
         });
         await batch.commit();
@@ -1660,32 +1705,82 @@ function showAccountDeleteModal(taskCount) {
       // 2. Delete user doc
       await deleteDoc(doc(db, 'users', user.uid));
 
-      // 3. Delete Auth account
+      // 3. Delete Auth Account
       await user.delete();
 
-      // 4. Cleanup
+      // 4. Final Cleanup
       localStorage.clear();
       window.location.reload();
     } catch (err) {
       if (err.code === 'auth/requires-recent-login') {
-        showToast('Recent login required. Please sign in again.', 'error');
-        // Small delay then logout to force fresh login
-        setTimeout(() => {
-          signOut(auth).then(() => {
-            localStorage.clear();
-            window.location.reload();
-          });
-        }, 2000);
+        close();
+        showReauthModal();
       } else {
         showToast('Failed to delete account', 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Delete Account';
       }
-      deleteBtn.disabled = false;
-      deleteBtn.textContent = 'Delete Account';
     }
   };
 
-  setTimeout(() => {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-  }, 10);
+  setTimeout(() => modal.classList.add('active'), 10);
 }
+
+function showReauthModal() {
+  const user = auth.currentUser;
+  const isGoogle = user.providerData.some(p => p.providerId === 'google.com');
+
+  let modal = document.createElement('div');
+  modal.className = 'tf-modal-overlay';
+  modal.id = 'reauth-modal';
+  modal.innerHTML = `
+    <div class="tf-modal-card">
+      <div class="tf-modal-header">
+        <h3 class="tf-modal-title">Verify Your Identity</h3>
+        <button class="tf-modal-close">✕</button>
+      </div>
+      <div class="tf-modal-body" style="padding: 24px;">
+        <p style="color: var(--color-text-secondary); line-height: 1.6; margin-bottom: 24px;">For security, please sign in again before deleting your account.</p>
+        
+        ${isGoogle 
+          ? `<button id="reauth-google-btn" class="tf-btn-primary" style="width: 100%; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; background: #4285F4; border: none;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Re-authenticate with Google
+            </button>`
+          : `<p style="font-size: 14px; text-align: center; color: var(--color-text-muted);">Please log out and sign in again to proceed.</p>`
+        }
+      </div>
+      <div class="tf-modal-footer">
+        <button class="tf-btn-secondary" id="reauth-cancel-btn" style="width: 100%;">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => {
+    modal.classList.remove('active');
+    setTimeout(() => modal.remove(), 200);
+  };
+
+  modal.querySelector('#reauth-cancel-btn').onclick = close;
+  modal.querySelector('.tf-modal-close').onclick = close;
+
+  const googleBtn = modal.querySelector('#reauth-google-btn');
+  if (googleBtn) {
+    googleBtn.onclick = async () => {
+      googleBtn.disabled = true;
+      try {
+        await signInWithPopup(auth, googleProvider);
+        showToast('Identity verified. You can now delete your account.', 'success');
+        close();
+        showDeleteAccountModal();
+      } catch (err) {
+        showToast('Verification failed', 'error');
+        googleBtn.disabled = false;
+      }
+    };
+  }
+
+  setTimeout(() => modal.classList.add('active'), 10);
+}
+
