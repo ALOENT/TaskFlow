@@ -24,6 +24,16 @@ import { initSettings } from './settings.js';
 
 initSettings();
 
+// Prevent glitchy animations during window resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  document.body.classList.add('no-transition');
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    document.body.classList.remove('no-transition');
+  }, 300);
+});
+
 // ============================================
 //  CATEGORIES
 // ============================================

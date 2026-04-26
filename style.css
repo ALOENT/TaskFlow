@@ -126,6 +126,10 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
               box-shadow 0.3s ease !important;
 }
 
+.no-transition * { 
+  transition: none !important; 
+}
+
 .theme-toggle-btn{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;padding:6px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;transition: transform 0.4s ease, background var(--transition-fast), color var(--transition-fast);outline:none}
 .theme-toggle-btn svg { transition: transform 0.4s ease; }
 [data-theme="dark"] .theme-toggle-btn svg { transform: rotate(360deg); }
