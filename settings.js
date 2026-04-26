@@ -25,6 +25,16 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function isValidPhotoURL(url) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
 export function initSettings() {
   if (!settingsBtn) return;
 
@@ -110,6 +120,7 @@ function renderProfileTab(container) {
   const displayName = user.displayName || 'Anonymous';
   const email = user.email || '';
   const photoURL = user.photoURL || '';
+  const safePhotoURL = isValidPhotoURL(photoURL) ? photoURL : null;
 
   container.innerHTML = `
     <div class="settings-section">
@@ -118,7 +129,7 @@ function renderProfileTab(container) {
       <div class="profile-header">
         <div class="avatar-upload-container">
           <div class="profile-avatar-large" id="profile-avatar-display">
-            ${photoURL ? `<img src="${escapeHtml(photoURL)}" alt="Avatar">` : escapeHtml(initials)}
+            ${safePhotoURL ? `<img src="${escapeHtml(safePhotoURL)}" alt="Avatar">` : escapeHtml(initials)}
             <div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>
           </div>
           <div class="avatar-overlay" id="avatar-upload-trigger" title="Change photo">
@@ -212,6 +223,12 @@ function renderProfileTab(container) {
 async function handleAvatarUpload(file) {
   const user = auth.currentUser;
   if (!user) return;
+
+  const inputEl = document.getElementById('avatar-input');
+  if (inputEl) inputEl.disabled = true;
+
+  const displayEl = document.getElementById('profile-avatar-display');
+  if (displayEl) displayEl.classList.add('loading');
 
   const spinner = document.getElementById('avatar-spinner');
   if (spinner) spinner.style.display = 'flex';
