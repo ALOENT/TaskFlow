@@ -101,6 +101,9 @@ function renderTab() {
     case 'appearance':
       renderAppearanceTab(pane);
       break;
+    case 'notifications':
+      renderNotificationsTab(pane);
+      break;
     default:
       pane.innerHTML = `<div class="settings-section"><h3>${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3><p>Coming soon...</p></div>`;
   }
@@ -836,4 +839,122 @@ function renderAppearanceTab(container) {
   openPickerBtn.addEventListener('click', () => openColorPicker());
 
   renderCustomSwatches();
+}
+
+// ============================================
+//  TAB 3 — NOTIFICATIONS
+// ============================================
+function renderNotificationsTab(container) {
+  const isEnabled = localStorage.getItem('notificationsEnabled') !== 'false'; // Default true
+  const defaultTime = localStorage.getItem('defaultReminderTime') || '09:00';
+  const soundEnabled = localStorage.getItem('notificationSound') !== 'false'; // Default true
+  const leadTime = localStorage.getItem('reminderLeadTime') || 'At the time';
+  const permission = Notification.permission;
+
+  const leadTimeOptions = [
+    'At the time',
+    '5 minutes before',
+    '15 minutes before',
+    '30 minutes before',
+    '1 hour before'
+  ];
+
+  container.innerHTML = `
+    <div class="settings-section">
+      <div class="setting-item master-toggle-row">
+        <div class="setting-info">
+          <span class="setting-label">Enable Notifications</span>
+          <span class="setting-subtitle">Receive reminders for your tasks</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="master-notify-toggle" ${isEnabled ? 'checked' : ''}>
+          <span class="slider round"></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="notification-sub-settings" class="${!isEnabled ? 'settings-disabled' : ''}">
+      <div class="settings-section">
+        <div class="setting-item column">
+          <div class="setting-info">
+            <span class="setting-label">Default Reminder Time</span>
+            <span class="setting-subtitle">Used when no specific time is set</span>
+          </div>
+          <input type="time" id="default-reminder-time" class="form-input" value="${defaultTime}" style="max-width: 150px; margin-top: 8px;">
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="setting-item">
+          <div class="setting-info">
+            <span class="setting-label">Notification Sound</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="notify-sound-toggle" ${soundEnabled ? 'checked' : ''}>
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="setting-item column">
+          <div class="setting-info">
+            <span class="setting-label">Remind me before</span>
+          </div>
+          <select id="reminder-lead-time" class="form-input" style="margin-top: 8px;">
+            ${leadTimeOptions.map(opt => `<option value="${opt}" ${leadTime === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <span class="settings-section-title">Browser Notification Permission</span>
+        <div class="permission-status-row" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+          <span class="permission-badge ${permission}">
+            ${permission === 'granted' ? 'Enabled' : (permission === 'denied' ? 'Blocked' : 'Not set')}
+          </span>
+          ${permission === 'default' ? `<button id="request-perm-btn" class="primary-btn sm">Enable Notifications</button>` : ''}
+        </div>
+        
+        ${permission === 'denied' ? `
+          <div class="permission-warning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <p>Notifications are blocked. To enable, click the lock icon in your browser's address bar and allow notifications.</p>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  const masterToggle = container.querySelector('#master-notify-toggle');
+  const subSettings  = container.querySelector('#notification-sub-settings');
+  const defaultTimeInput = container.querySelector('#default-reminder-time');
+  const soundToggle = container.querySelector('#notify-sound-toggle');
+  const leadTimeSelect = container.querySelector('#reminder-lead-time');
+  const requestBtn = container.querySelector('#request-perm-btn');
+
+  masterToggle.addEventListener('change', () => {
+    const checked = masterToggle.checked;
+    localStorage.setItem('notificationsEnabled', checked);
+    subSettings.classList.toggle('settings-disabled', !checked);
+  });
+
+  defaultTimeInput.addEventListener('change', () => {
+    localStorage.setItem('defaultReminderTime', defaultTimeInput.value);
+  });
+
+  soundToggle.addEventListener('change', () => {
+    localStorage.setItem('notificationSound', soundToggle.checked);
+  });
+
+  leadTimeSelect.addEventListener('change', () => {
+    localStorage.setItem('reminderLeadTime', leadTimeSelect.value);
+  });
+
+  if (requestBtn) {
+    requestBtn.addEventListener('click', async () => {
+      const result = await Notification.requestPermission();
+      renderTab(); // Re-render to update badge/button
+    });
+  }
 }
