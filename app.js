@@ -893,7 +893,7 @@ async function handleRecurrence(task) {
   const docRef = await addDoc(tasksRef, taskData);
 
   if (nextReminder) {
-    const notifId = await scheduleTaskReminder({ id: docRef.id, title: task.text, reminderTime: nextReminder.toISOString() });
+    const notifId = await scheduleTaskReminder({ id: docRef.id, title: task.text || task.title || 'Untitled', reminderTime: nextReminder.toISOString() });
     if (notifId != null) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
     }
@@ -932,7 +932,7 @@ function createTaskElement(task) {
   item.innerHTML = `
     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
     <div class="task-content">
-      <div class="task-text">${task.text}</div>
+      <div class="task-text">${task.text || task.title || 'Untitled'}</div>
       <div class="task-meta">
         <span class="task-category-badge">${cat.icon} ${cat.label}</span>
         <span class="task-category-badge priority-${task.priority || 'medium'}">${prioIcon} ${prioLabel}</span>
@@ -1325,7 +1325,8 @@ function renderTasks() {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(t => 
-      t.text.toLowerCase().includes(q) || 
+      (t.text && t.text.toLowerCase().includes(q)) || 
+      (t.title && t.title.toLowerCase().includes(q)) || 
       (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q)))
     );
   }

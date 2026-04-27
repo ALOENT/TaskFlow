@@ -6,7 +6,8 @@ import {
   addDoc, deleteDoc, writeBatch, doc,
   onAuthStateChanged, serverTimestamp,
   updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
-  signOut, googleProvider, signInWithPopup
+  signOut, googleProvider, signInWithPopup,
+  getDoc, setDoc
 } from './firebase-config.js';
 
 // DOM Refs
@@ -54,12 +55,55 @@ function escapeHtml(str) {
 
 function isValidPhotoURL(url) {
   if (!url) return false;
+  // Accept base64 data URLs as valid
+  if (url.startsWith('data:image/')) return true;
   try {
     const parsed = new URL(url);
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch (e) {
     return false;
   }
+}
+
+function compressImage(file, callback) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 200;
+      let w = img.width, h = img.height;
+      if (w > h) { 
+        if (w > MAX) { h *= MAX/w; w = MAX; }
+      } else { 
+        if (h > MAX) { w *= MAX/h; h = MAX; }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateAllAvatars(photoURL, initials) {
+  const avatarHTML = photoURL 
+    ? `<img src="${escapeHtml(photoURL)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` 
+    : escapeHtml(initials);
+  
+  const ids = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar', 'profile-avatar-display', 'account-avatar-container'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    
+    if (id === 'profile-avatar-display') {
+      el.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
+    } else {
+      el.innerHTML = avatarHTML;
+    }
+  });
 }
 
 export function initSettings() {
@@ -82,6 +126,18 @@ export function initSettings() {
     }
 
     if (user) {
+      // 1. Check Firestore for base64 fallback first
+      const userDocRef = doc(db, 'users', user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        let finalPhotoURL = user.photoURL;
+        if (docSnap.exists() && docSnap.data().avatarBase64) {
+          finalPhotoURL = docSnap.data().avatarBase64;
+        }
+        updateAllAvatars(finalPhotoURL, initials);
+      }).catch(() => {
+        updateAllAvatars(user.photoURL, initials);
+      });
+
       const q = query(collection(db, 'users', user.uid, 'tasks'));
       unsubscribeTasks = onSnapshot(q, snapshot => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -295,39 +351,59 @@ async function handleAvatarUpload(file) {
     }
 
     const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
-    await uploadBytesResumable(storageRef, file);
     
-    const downloadURL = await getDownloadURL(storageRef);
-    await updateProfile(user, { photoURL: downloadURL });
-    
-    const escapedURL = escapeHtml(downloadURL);
-    const avatarHTML = `<img src="${escapedURL}" alt="Avatar">`;
-    const profileDisplay = document.getElementById('profile-avatar-display');
-    if (profileDisplay) {
-      profileDisplay.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
+    try {
+      // Attempt Storage Upload
+      await uploadBytesResumable(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      await updateProfile(user, { photoURL: downloadURL });
+      
+      const initials = user.displayName 
+        ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+        : '?';
+      updateAllAvatars(downloadURL, initials);
+      showToast('Profile photo updated!', 'success');
+      
+    } catch (storageErr) {
+      console.warn("Storage upload failed (CORS?), falling back to base64...", storageErr);
+      
+      // Fallback: Base64 to Firestore
+      compressImage(file, async (base64) => {
+        try {
+          await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64 }, { merge: true });
+          await updateProfile(user, { photoURL: base64 });
+          
+          const initials = user.displayName 
+            ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+            : '?';
+          updateAllAvatars(base64, initials);
+          showToast('Profile photo updated (fallback)!', 'success');
+        } catch (dbErr) {
+          console.error("Fallback upload failed too:", dbErr);
+          showToast('Upload failed. Please check connection.', 'error');
+        } finally {
+          cleanupAvatarUI();
+        }
+      });
+      return; // Cleanup is handled in callback
     }
-    
-    // Update all global UI avatars
-    const avatarContainers = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar'];
-    avatarContainers.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = avatarHTML;
-    });
-
-    showToast('Profile photo updated!', 'success');
   } catch (error) {
     console.error(error);
     showToast('Upload failed. Please try again.', 'error');
   } finally {
-    const finalAvatar = document.getElementById('profile-avatar-display');
-    if (finalAvatar) finalAvatar.classList.remove('loading');
-
-    const finalSpinner = document.getElementById('avatar-spinner');
-    if (finalSpinner) finalSpinner.style.display = 'none';
-
-    const finalInput = document.getElementById('avatar-input');
-    if (finalInput) finalInput.disabled = false;
+    cleanupAvatarUI();
   }
+}
+
+function cleanupAvatarUI() {
+  const finalAvatar = document.getElementById('profile-avatar-display');
+  if (finalAvatar) finalAvatar.classList.remove('loading');
+
+  const finalSpinner = document.getElementById('avatar-spinner');
+  if (finalSpinner) finalSpinner.style.display = 'none';
+
+  const finalInput = document.getElementById('avatar-input');
+  if (finalInput) finalInput.disabled = false;
 }
 
 function updateProfileStats(animate = true) {

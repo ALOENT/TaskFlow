@@ -16,6 +16,7 @@ import { getAuth, GoogleAuthProvider,
 import { getFirestore, collection, addDoc,
          deleteDoc, doc, updateDoc, query,
          orderBy, onSnapshot, getDocs,
+         getDoc, setDoc,
          serverTimestamp, writeBatch,
          where }                       from 'firebase/firestore';
 import { getStorage, ref, 
@@ -44,6 +45,7 @@ export {
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
   updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
   collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, getDocs,
+  getDoc, setDoc,
   serverTimestamp, writeBatch, where,
   ref, uploadBytesResumable, getDownloadURL
 };
