@@ -52,57 +52,67 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function isValidPhotoURL(url) {
-  if (!url) return false;
-  // Accept base64 data URLs as valid
-  if (url.startsWith('data:image/')) return true;
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch (e) {
-    return false;
-  }
-}
 
-function compressImage(file, callback, maxWidth = 200, quality = 0.7) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX = maxWidth;
-      let w = img.width, h = img.height;
-      if (w > h) { 
-        if (w > MAX) { h *= MAX/w; w = MAX; }
-      } else { 
-        if (h > MAX) { w *= MAX/h; h = MAX; }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
 
-function updateAllAvatars(photoURL, initials) {
-  const avatarHTML = photoURL 
-    ? `<img src="${escapeHtml(photoURL)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` 
-    : escapeHtml(initials);
+export function generateInitialsAvatar(name, size) {
+  const initials = (name || '?')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(n => n[0].toUpperCase())
+    .slice(0, 2)
+    .join('');
   
-  const ids = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar', 'profile-avatar-display', 'account-avatar-container'];
-  ids.forEach(id => {
-    const el = document.getElementById(id);
+  const canvas = document.createElement('canvas');
+  canvas.width = size || 40;
+  canvas.height = size || 40;
+  const ctx = canvas.getContext('2d');
+  
+  // Background: accent color
+  const accent = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-accent')
+    .trim() || '#2563eb';
+  
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Text: white initials
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${size * 0.38}px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initials, size/2, size/2);
+  
+  return canvas.toDataURL();
+}
+
+export function refreshAllAvatars() {
+  const user = auth.currentUser;
+  const displayName = user ? (user.displayName || (user.email ? user.email.split('@')[0] : 'User')) : '?';
+  
+  const config = [
+    { id: 'side-user-avatar', size: 40 },
+    { id: 'mobile-user-avatar', size: 32 },
+    { id: 'top-user-avatar', size: 32 },
+    { id: 'profile-avatar-display', size: 80 }
+  ];
+
+  const dataURL = generateInitialsAvatar(displayName, 80); // Base high-res version or per size
+  
+  config.forEach(item => {
+    const el = document.getElementById(item.id);
     if (!el) return;
-    
-    if (id === 'profile-avatar-display') {
-      el.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
-    } else {
-      el.innerHTML = avatarHTML;
-    }
+    const url = (item.size === 80) ? dataURL : generateInitialsAvatar(displayName, item.size);
+    el.innerHTML = `<img src="${url}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
   });
+
+  // Account tab might have its own
+  const accountAvatar = document.getElementById('account-avatar-container');
+  if (accountAvatar) {
+    accountAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 64)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+  }
 }
 
 export function initSettings() {
@@ -125,28 +135,7 @@ export function initSettings() {
     }
 
     if (user) {
-      const name = user.displayName || '';
-      const initials = name
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .map(n => n[0].toUpperCase())
-        .slice(0, 2)
-        .join('') || '?';
-
-      // Prioritize avatar from Firestore Base64
-      const userDocRef = doc(db, 'users', user.uid);
-      getDoc(userDocRef).then(docSnap => {
-        let finalPhotoURL = user.photoURL;
-        if (docSnap.exists() && docSnap.data().avatarBase64) {
-          finalPhotoURL = docSnap.data().avatarBase64;
-        }
-        updateAllAvatars(finalPhotoURL, initials);
-      }).catch(err => {
-        console.error("Error loading avatar from Firestore:", err);
-        updateAllAvatars(user.photoURL, initials);
-      });
-
+      refreshAllAvatars();
       const q = query(collection(db, 'users', user.uid, 'tasks'));
       unsubscribeTasks = onSnapshot(q, snapshot => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -227,14 +216,9 @@ function renderProfileTab(container) {
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })
     : 'Unknown';
 
-  const initials = user.displayName 
-    ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-    : '?';
-
   const displayName = user.displayName || 'Anonymous';
   const email = user.email || '';
-  const photoURL = user.photoURL || '';
-  const safePhotoURL = isValidPhotoURL(photoURL) ? photoURL : null;
+  const initialsURL = generateInitialsAvatar(displayName, 80);
 
   container.innerHTML = `
     <div class="settings-section">
@@ -243,13 +227,8 @@ function renderProfileTab(container) {
       <div class="profile-header">
         <div class="avatar-upload-container">
           <div class="profile-avatar-large" id="profile-avatar-display">
-            ${safePhotoURL ? `<img src="${escapeHtml(safePhotoURL)}" alt="Avatar">` : escapeHtml(initials)}
-            <div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>
+            <img src="${initialsURL}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
           </div>
-          <div class="avatar-overlay" id="avatar-upload-trigger" title="Change photo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-          <input type="file" id="avatar-input" style="display:none" accept=".jpg,.jpeg,.png,.webp,.gif">
         </div>
         <div class="profile-info">
           <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
@@ -293,16 +272,6 @@ function renderProfileTab(container) {
     </div>
   `;
 
-  // Avatar Upload Logic
-  const avatarTrigger = container.querySelector('#avatar-upload-trigger');
-  const avatarInput   = container.querySelector('#avatar-input');
-
-  avatarTrigger.addEventListener('click', () => avatarInput.click());
-  avatarInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) handleAvatarUpload(file);
-  });
-
   // Name Editing Logic
   const nameInput = container.querySelector('#profile-name-input');
   const saveBtn   = container.querySelector('#save-profile-name');
@@ -319,6 +288,7 @@ function renderProfileTab(container) {
     try {
       await updateProfile(user, { displayName: newName });
       document.getElementById('profile-display-name-text').textContent = newName;
+      refreshAllAvatars();
       const sidebarName = document.getElementById('side-user-name');
       if (sidebarName) sidebarName.textContent = newName;
       showToast('Display name updated!', 'success');
@@ -332,88 +302,6 @@ function renderProfileTab(container) {
   });
 
   setTimeout(() => updateProfileStats(true), 600);
-}
-
-async function handleAvatarUpload(file) {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const inputEl = document.getElementById('avatar-input');
-  if (inputEl) inputEl.disabled = true;
-
-  const displayEl = document.getElementById('profile-avatar-display');
-  if (displayEl) displayEl.classList.add('loading');
-
-  const spinner = document.getElementById('avatar-spinner');
-  if (spinner) spinner.style.display = 'flex';
-
-  try {
-    // Validation
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      showToast('Invalid file type. Use JPG, PNG, WEBP, or GIF.', 'error');
-      cleanupAvatarUI();
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('File too large. Max size is 5MB.', 'error');
-      cleanupAvatarUI();
-      return;
-    }
-
-    // Base64 Compression & Save to Firestore
-    compressImage(file, async (base64) => {
-      console.log('Base64 size:', base64.length);
-      
-      let finalBase64 = base64;
-      
-      // If still too large for Firestore (1MB limit), compress further
-      if (base64.length > 700000) {
-        console.warn('Base64 too large, re-compressing at 150px / 0.5 quality...');
-        compressImage(file, async (smallerBase64) => {
-          console.log('New Base64 size:', smallerBase64.length);
-          await saveAvatarToFirestore(user, smallerBase64);
-        }, 150, 0.5);
-      } else {
-        await saveAvatarToFirestore(user, base64);
-      }
-    });
-  } catch (error) {
-    console.error('Avatar upload prep error:', error);
-    showToast('An unexpected error occurred.', 'error');
-    cleanupAvatarUI();
-  }
-}
-
-async function saveAvatarToFirestore(user, base64String) {
-  try {
-    await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64String }, { merge: true });
-    await updateProfile(user, { photoURL: base64String });
-    
-    const initials = user.displayName 
-      ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-      : '?';
-    updateAllAvatars(base64String, initials);
-    showToast('Profile photo updated successfully!', 'success');
-  } catch (err) {
-    console.error('Avatar save error:', err);
-    console.error('Error code:', err.code);
-    console.error('Error message:', err.message);
-    showToast('Failed to save avatar. Please try again.', 'error');
-  } finally {
-    cleanupAvatarUI();
-  }
-}
-
-function cleanupAvatarUI() {
-  const finalAvatar = document.getElementById('profile-avatar-display');
-  if (finalAvatar) finalAvatar.classList.remove('loading');
-
-  const finalSpinner = document.getElementById('avatar-spinner');
-  if (finalSpinner) finalSpinner.style.display = 'none';
-
-  const finalInput = document.getElementById('avatar-input');
-  if (finalInput) finalInput.disabled = false;
 }
 
 function updateProfileStats(animate = true) {
@@ -744,6 +632,7 @@ function renderAppearanceTab(container) {
       s.classList.toggle('active', isActive);
       s.innerHTML = isActive ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : '';
     });
+    refreshAllAvatars();
   };
 
   const showContextMenu = (target, index, color) => {

@@ -387,7 +387,7 @@ function getTimeGreeting() {
   return 'Good evening';
 }
 
-function updateHeaderUI(user) {
+async function updateHeaderUI(user) {
   const email = user.email || '';
   const displayName = user.displayName || (email ? email.split('@')[0] : 'User');
   const firstName = displayName.split(' ')[0];
@@ -401,23 +401,25 @@ function updateHeaderUI(user) {
     greetingTextEl.innerHTML = `${getTimeGreeting()}, <span id="user-first-name">${firstName}</span> \u{1F44B}`;
   }
   
-  const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  
-  const avatarHTML = user.photoURL 
-    ? `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`
-    : initials;
-
-  if (sideUserAvatar) {
-    if (user.photoURL) sideUserAvatar.innerHTML = avatarHTML;
-    else sideUserAvatar.textContent = initials;
-  }
-  if (topUserAvatar) {
-    if (user.photoURL) topUserAvatar.innerHTML = avatarHTML;
-    else topUserAvatar.textContent = initials;
-  }
-  if (mobileUserAvatar) {
-    if (user.photoURL) mobileUserAvatar.innerHTML = avatarHTML;
-    else mobileUserAvatar.textContent = initials;
+  try {
+    const { generateInitialsAvatar } = await import('./settings.js');
+    
+    if (sideUserAvatar) {
+      sideUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 40)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    }
+    if (topUserAvatar) {
+      topUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 32)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    }
+    if (mobileUserAvatar) {
+      mobileUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 32)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    }
+  } catch (err) {
+    console.error("Failed to load avatar generator:", err);
+    // Fallback to text initials
+    const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    if (sideUserAvatar) sideUserAvatar.textContent = initials;
+    if (topUserAvatar) topUserAvatar.textContent = initials;
+    if (mobileUserAvatar) mobileUserAvatar.textContent = initials;
   }
   
   updateCurrentDate();
