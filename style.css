@@ -19,8 +19,8 @@
   --color-warning: #f97316;
   --color-danger-bg: #fef2f2;
   --color-warning-bg: #fff7ed;
-  --color-success-bg: #f0fdf4;
   --color-success-light: #dcfce7;
+  --base-font-size: 15px;
   
   --color-user-bg: #f4f7fa;
   --color-nav-hover: #eef2f6;
@@ -1083,6 +1083,16 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
 
 .fab-btn:active {
   transform: scale(0.9);
+}
+
+.fab-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-bg), 0 0 0 8px var(--color-accent);
+  transform: scale(1.05);
+}
+
+.fab-btn:focus:not(:focus-visible) {
+  outline: none;
 }
 
 /* BOTTOM SHEET */

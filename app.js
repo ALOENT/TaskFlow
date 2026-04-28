@@ -22,12 +22,15 @@ import 'flatpickr/dist/flatpickr.css';
 import { sanitize } from './sanitize.js';
 // Lazy load settings when button clicked
 const settingsBtn = document.getElementById('settings-btn');
+let settingsModule = null;
 if (settingsBtn) {
   settingsBtn.addEventListener('click', async () => {
-    const { openSettings, initSettings } = await import('./settings.js');
-    initSettings();
-    openSettings();
-  }, { once: true });
+    if (!settingsModule) {
+      settingsModule = await import('./settings.js');
+      settingsModule.initSettings();
+    }
+    settingsModule.openSettings();
+  });
 }
 
 // Prevent glitchy animations during window resize
@@ -398,7 +401,12 @@ async function updateHeaderUI(user) {
 
   // Time-based greeting
   if (greetingTextEl) {
-    greetingTextEl.innerHTML = `${getTimeGreeting()}, <span id="user-first-name">${firstName}</span> \u{1F44B}`;
+    greetingTextEl.textContent = `${getTimeGreeting()}, `;
+    const nameSpan = document.createElement('span');
+    nameSpan.id = 'user-first-name';
+    nameSpan.textContent = firstName;
+    greetingTextEl.appendChild(nameSpan);
+    greetingTextEl.appendChild(document.createTextNode(' \u{1F44B}'));
   }
   
   try {

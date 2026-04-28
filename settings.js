@@ -3,6 +3,7 @@ import {
   updateProfile, 
   collection, query, where, onSnapshot, getDocs,
   addDoc, deleteDoc, writeBatch, doc,
+  updateDoc,
   onAuthStateChanged, serverTimestamp,
   updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
   signOut, googleProvider, signInWithPopup,
@@ -55,6 +56,7 @@ function escapeHtml(str) {
 
 
 export function generateInitialsAvatar(name, size) {
+  const s = size || 40;
   const initials = (name || '?')
     .trim()
     .split(/\s+/)
@@ -64,8 +66,8 @@ export function generateInitialsAvatar(name, size) {
     .join('');
   
   const canvas = document.createElement('canvas');
-  canvas.width = size || 40;
-  canvas.height = size || 40;
+  canvas.width = s;
+  canvas.height = s;
   const ctx = canvas.getContext('2d');
   
   // Background: accent color
@@ -75,15 +77,15 @@ export function generateInitialsAvatar(name, size) {
   
   ctx.fillStyle = accent;
   ctx.beginPath();
-  ctx.arc(size/2, size/2, size/2, 0, Math.PI*2);
+  ctx.arc(s/2, s/2, s/2, 0, Math.PI*2);
   ctx.fill();
   
   // Text: white initials
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${size * 0.38}px Inter, sans-serif`;
+  ctx.font = `bold ${s * 0.38}px Inter, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(initials, size/2, size/2);
+  ctx.fillText(initials, s/2, s/2);
   
   return canvas.toDataURL();
 }
@@ -119,7 +121,9 @@ export function initSettings() {
   if (!settingsBtn) return;
 
   settingsBtn.addEventListener('click', openSettings);
-  settingsBackBtn.addEventListener('click', closeSettings);
+  if (settingsBackBtn) {
+    settingsBackBtn.addEventListener('click', closeSettings);
+  }
 
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -991,8 +995,12 @@ function renderNotificationsTab(container) {
 
   if (requestBtn) {
     requestBtn.addEventListener('click', async () => {
-      const result = await Notification.requestPermission();
-      renderTab(); // Re-render to update badge/button
+      try {
+        await Notification.requestPermission();
+        renderTab(); // Re-render to update badge/button
+      } catch (err) {
+        console.error("Notification permission error:", err);
+      }
     });
   }
 }
@@ -1702,10 +1710,20 @@ function showDeleteAccountModal() {
     btn.innerHTML = `<div class="loader-spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>`;
     
     try {
-      // 0. Mark deletion in progress on user doc
+      // 1. Mark deletion in progress
       await updateDoc(doc(db, 'users', user.uid), { deletionInProgress: true });
 
-      // 1. Batch delete tasks
+      // 2. Delete Auth Account first (safer approach B)
+      // Note: This requires recent login. If it fails, catch block handles it.
+      await user.delete();
+
+      // 3. Cleanup Firestore data
+      // Since Auth is deleted, we rely on the fact that if this fails, 
+      // the data is orphaned but the user has no account.
+      // Ideally, a Cloud Function handles this onUserDelete.
+      const userRef = doc(db, 'users', user.uid);
+      
+      // Batch delete tasks
       for (let i = 0; i < tasks.length; i += 500) {
         const batch = writeBatch(db);
         tasks.slice(i, i + 500).forEach(t => {
@@ -1714,11 +1732,8 @@ function showDeleteAccountModal() {
         await batch.commit();
       }
 
-      // 2. Delete user doc
-      await deleteDoc(doc(db, 'users', user.uid));
-
-      // 3. Delete Auth Account
-      await user.delete();
+      // Delete user doc
+      await deleteDoc(userRef);
 
       // 4. Final Cleanup
       localStorage.clear();
@@ -1760,7 +1775,10 @@ function showReauthModal() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
               Re-authenticate with Google
             </button>`
-          : `<p style="font-size: 14px; text-align: center; color: var(--color-text-muted);">Please log out and sign in again to proceed.</p>`
+          : `<div style="display: flex; flex-direction: column; gap: 12px;">
+              <input type="password" id="reauth-password" placeholder="Confirm your password" style="width: 100%; height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text-primary); outline: none;">
+              <button id="reauth-email-btn" class="tf-btn-primary" style="width: 100%; height: 48px; border-radius: 12px;">Verify and Proceed</button>
+            </div>`
         }
       </div>
       <div class="tf-modal-footer">
@@ -1791,6 +1809,27 @@ function showReauthModal() {
         console.error("Re-auth failed:", err);
         showToast('Verification failed', 'error');
         googleBtn.disabled = false;
+      }
+    };
+  }
+
+  const emailBtn = modal.querySelector('#reauth-email-btn');
+  const passwordInput = modal.querySelector('#reauth-password');
+  if (emailBtn && passwordInput) {
+    emailBtn.onclick = async () => {
+      const password = passwordInput.value;
+      if (!password) return showToast('Please enter password', 'error');
+      
+      emailBtn.disabled = true;
+      try {
+        const cred = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, cred);
+        showToast('Identity verified. You can now delete your account.', 'success');
+        close();
+        showDeleteAccountModal();
+      } catch (err) {
+        showToast('Incorrect password', 'error');
+        emailBtn.disabled = false;
       }
     };
   }
