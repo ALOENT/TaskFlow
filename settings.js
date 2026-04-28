@@ -128,6 +128,9 @@ export function refreshAllAvatars() {
     img.alt = 'Avatar';
     img.referrerPolicy = 'no-referrer';
     img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    img.onerror = () => {
+      img.src = generateInitialsAvatar(displayName, size);
+    };
     el.appendChild(img);
   });
 
@@ -142,6 +145,9 @@ export function refreshAllAvatars() {
     img.alt = 'Avatar';
     img.referrerPolicy = 'no-referrer';
     img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    img.onerror = () => {
+      img.src = generateInitialsAvatar(displayName, size);
+    };
     accountAvatar.appendChild(img);
   }
 }
@@ -197,7 +203,7 @@ export function openSettings() {
   if (sidebar) sidebar.classList.remove('open');
   if (overlay) overlay.classList.remove('active');
   
-  switchTab('profile');
+  renderTab();
 }
 
 function closeSettings() {
@@ -217,11 +223,24 @@ function switchTab(tabId) {
 
   // Toggle panel visibility
   const panels = settingsContent.querySelectorAll('.tab-pane');
+  let targetPane = null;
   panels.forEach(p => {
     const isTarget = p.id === `${tabId}-panel`;
     p.style.display = isTarget ? 'block' : 'none';
     p.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+    if (isTarget) targetPane = p;
   });
+
+  // Refresh content for the active tab
+  if (targetPane) {
+    switch (tabId) {
+      case 'profile': renderProfileTab(targetPane); break;
+      case 'appearance': renderAppearanceTab(targetPane); break;
+      case 'notifications': renderNotificationsTab(targetPane); break;
+      case 'data': renderDataTab(targetPane); break;
+      case 'account': renderAccountTab(targetPane); break;
+    }
+  }
 }
 
 function renderTab() {
@@ -1781,6 +1800,12 @@ function showDeleteAccountModal() {
         await updateDoc(doc(db, 'users', user.uid), { lastDeletionAttempt: serverTimestamp() });
       } catch (err) {
         if (err.code === 'permission-denied' || err.code === 'auth/requires-recent-login') {
+          throw err;
+        } else {
+          console.error('Unexpected error during deletion attempt check:', {
+            message: err.message,
+            code: err.code
+          });
           throw err;
         }
       }

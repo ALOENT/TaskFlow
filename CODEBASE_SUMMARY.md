@@ -101,7 +101,6 @@ Configured via `capacitor.config.json`:
 ## 8. Environment Variables
 
 Keys used in `.env`:
-- `OPENROUTER_API_KEY`: API key for OpenRouter integrations.
 - `VITE_FIREBASE_API_KEY`: The API key for your Firebase project.
 - `VITE_FIREBASE_AUTH_DOMAIN`: The auth domain for your Firebase project.
 - `VITE_FIREBASE_PROJECT_ID`: The unique ID for your Firebase project.

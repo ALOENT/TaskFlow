@@ -3,7 +3,7 @@
     "origin": ["https://taskflow.ishant.dev"],
     "method": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     "allowedHeaders": ["Authorization", "Content-Type", "Accept", "X-Requested-With"],
-    "responseHeader": ["Authorization", "Content-Type", "X-Request-ID"],
+    "exposedHeaders": ["Authorization", "Content-Type", "X-Request-ID"],
     "maxAgeSeconds": 3600
   }
 ]

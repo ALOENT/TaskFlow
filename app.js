@@ -25,11 +25,21 @@ const settingsBtn = document.getElementById('settings-btn');
 let settingsModule = null;
 if (settingsBtn) {
   settingsBtn.addEventListener('click', async () => {
-    if (!settingsModule) {
-      settingsModule = await import('./settings.js');
-      settingsModule.initSettings();
+    try {
+      settingsBtn.disabled = true;
+      if (!settingsModule) {
+        settingsModule = await import('./settings.js');
+        settingsModule.initSettings();
+      }
+      settingsModule.openSettings();
+    } catch (err) {
+      console.error('Failed to load settings module:', err);
+      if (typeof showToast === 'function') {
+        showToast('Failed to load settings. Please check your connection.', 'error');
+      }
+    } finally {
+      settingsBtn.disabled = false;
     }
-    settingsModule.openSettings();
   });
 }
 
@@ -401,7 +411,8 @@ async function updateHeaderUI(user) {
 
   // Time-based greeting
   if (greetingTextEl) {
-    greetingTextEl.textContent = `${getTimeGreeting()}, `;
+    greetingTextEl.textContent = '';
+    greetingTextEl.appendChild(document.createTextNode(`${getTimeGreeting()}, `));
     const nameSpan = document.createElement('span');
     nameSpan.id = 'user-first-name';
     nameSpan.textContent = firstName;
@@ -417,7 +428,17 @@ async function updateHeaderUI(user) {
     avatars.forEach(el => {
       const size = parseInt(el.dataset.size) || 40;
       const url = photoURL || generateInitialsAvatar(displayName, size);
-      el.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+      
+      el.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Avatar';
+      img.referrerPolicy = 'no-referrer';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.borderRadius = '50%';
+      img.style.objectFit = 'cover';
+      el.appendChild(img);
     });
   } catch (err) {
     console.error("Failed to load avatar generator:", err);
@@ -1439,9 +1460,13 @@ taskInput.addEventListener('keydown', (e) => {
 });
 
 if (topSearchInput) {
+  let searchTimeout;
   topSearchInput.addEventListener('input', (e) => {
-    searchQuery = e.target.value.trim();
-    renderTasks();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = e.target.value.trim();
+      renderTasks();
+    }, 200);
   });
 }
 
@@ -1589,6 +1614,10 @@ async function addSheetTask() {
         await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
       }
     }
+
+    // UI Cleanup
+    if (bottomSheet) bottomSheet.classList.remove('active');
+    if (sheetOverlay) sheetOverlay.classList.remove('active');
   } catch (err) {
     console.error('Error adding sheet task:', err);
     sheetTaskInput.value = text;

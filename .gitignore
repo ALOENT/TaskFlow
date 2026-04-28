@@ -11,3 +11,6 @@ android/app/build/
 ios/App/Pods/
 ios/App/build/
 ios/App/DerivedData/
+*.log
+opencode.*.json
+.antigravityignore
