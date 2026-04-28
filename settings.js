@@ -209,7 +209,9 @@ function switchTab(tabId) {
   closeModal('import-modal');
   closeModal('delete-modal');
   tabButtons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tabId);
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
   renderTab();
 }
@@ -218,6 +220,9 @@ function renderTab() {
   settingsContent.innerHTML = '';
   const pane = document.createElement('div');
   pane.className = 'tab-pane';
+  pane.setAttribute('role', 'tabpanel');
+  pane.setAttribute('id', `${activeTab}-panel`);
+  pane.setAttribute('aria-labelledby', `tab-${activeTab}`);
 
   switch (activeTab) {
     case 'profile':
@@ -263,31 +268,13 @@ function renderProfileTab(container) {
       <span class="settings-section-title">Public Profile</span>
       
       <div class="profile-header">
-        <div class="profile-avatar-large" id="profile-avatar-display">
-          <!-- Image injected below -->
-        </div>
+        <div class="profile-avatar-large" id="profile-avatar-display"></div>
         <div class="profile-info">
           <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
           <p style="color: var(--color-text-secondary); font-size: 0.875rem;">${escapeHtml(email)}</p>
           <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${escapeHtml(createdAt)}</p>
         </div>
       </div>
-
-      <script>
-        (function() {
-          const disp = document.getElementById('profile-avatar-display');
-          if (disp) {
-            const url = "${getSafeAvatarUrl(photoURL, displayName, 80)}";
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = 'Avatar';
-            img.referrerPolicy = 'no-referrer';
-            img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
-            disp.innerHTML = '';
-            disp.appendChild(img);
-          }
-        })();
-      </script>
 
       <div class="profile-row">
         <label>Display Name</label>
@@ -324,6 +311,18 @@ function renderProfileTab(container) {
       </div>
     </div>
   `;
+
+  // Avatar Rendering
+  const avatarUrl = getSafeAvatarUrl(photoURL, displayName, 80);
+  const avatarDisp = container.querySelector('#profile-avatar-display');
+  if (avatarDisp) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    avatarDisp.appendChild(img);
+  }
 
   // Name Editing Logic
   const nameInput = container.querySelector('#profile-name-input');
@@ -402,9 +401,10 @@ function calculateStreak(allTasks) {
   if (!user) return 0;
 
   const completedDates = allTasks
-    .filter(t => t.completed && t.createdAt)
+    .filter(t => t.completed && (t.completedAt || t.createdAt))
     .map(t => {
-      const d = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      const ts = t.completedAt || t.createdAt;
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
       return d.toDateString();
     });
 
@@ -733,13 +733,17 @@ function renderAppearanceTab(container) {
     });
 
     menu.querySelector('#remove-color').addEventListener('click', () => {
+      const colorToRemove = color;
       target.style.transition = 'opacity 0.2s, transform 0.2s';
       target.style.opacity = '0';
       target.style.transform = 'scale(0.8)';
       setTimeout(() => {
-        customColors.splice(index, 1);
-        localStorage.setItem('customAccentColors', JSON.stringify(customColors));
-        if (color === localStorage.getItem('accentColor')) {
+        const idx = customColors.indexOf(colorToRemove);
+        if (idx !== -1) {
+          customColors.splice(idx, 1);
+          localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+        }
+        if (colorToRemove === localStorage.getItem('accentColor')) {
           applyColor('#2563eb');
         }
         renderCustomSwatches();
@@ -1761,13 +1765,23 @@ function showDeleteAccountModal() {
     btn.innerHTML = `<div class="loader-spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>`;
     
     try {
-      // 1. Mark deletion in progress
+      // 1. First, check if we need re-authentication before deleting data
+      // We do a dummy update to trigger potential auth errors early
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { lastDeletionAttempt: serverTimestamp() });
+      } catch (err) {
+        if (err.code === 'permission-denied' || err.code === 'auth/requires-recent-login') {
+          throw err;
+        }
+      }
+
+      // 2. Mark deletion in progress
       await updateDoc(doc(db, 'users', user.uid), { deletionInProgress: true });
 
-      // 2. Cleanup Firestore data first (Safer Approach A)
+      // 3. Cleanup Firestore data
       const userRef = doc(db, 'users', user.uid);
       
-      // Batch delete tasks
+      // Batch delete tasks (500 per batch is Firestore limit)
       for (let i = 0; i < tasks.length; i += 500) {
         const batch = writeBatch(db);
         tasks.slice(i, i + 500).forEach(t => {
@@ -1779,20 +1793,19 @@ function showDeleteAccountModal() {
       // Delete user doc
       await deleteDoc(userRef);
 
-      // 3. Delete Auth Account
-      // Note: This requires recent login.
+      // 4. Delete Auth Account
       await user.delete();
 
-      // 4. Final Cleanup
+      // 5. Final Cleanup
       localStorage.clear();
       window.location.reload();
     } catch (err) {
-      if (err.code === 'auth/requires-recent-login') {
+      if (err.code === 'auth/requires-recent-login' || err.message?.includes('recent login')) {
         close();
         showReauthModal();
       } else {
         console.error("Critical Deletion Failure:", err);
-        showToast('Failed to delete account. Please try again.', 'error');
+        showToast('Failed to delete account. Please re-authenticate and try again.', 'error');
         btn.disabled = false;
         btn.innerHTML = 'Delete Account';
       }

@@ -714,7 +714,7 @@ async function toggleTask(id) {
 
   try {
     const newCompleted = !task.completed;
-    await updateDoc(taskDoc, { completed: newCompleted });
+    await updateDoc(taskDoc, { completed: newCompleted, completedAt: newCompleted ? serverTimestamp() : null });
 
     // Handle Recurring Task
     if (newCompleted && task.recurrence && task.recurrence !== 'none') {
@@ -1594,92 +1594,15 @@ async function addSheetTask() {
   }
 }
 
+// End of file listeners
 if (sheetAddTaskBtn) {
   sheetAddTaskBtn.addEventListener('click', addSheetTask);
 }
 if (sheetTaskInput) {
   sheetTaskInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addSheetTask(); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSheetTask();
+    }
   });
 }
-
-// Custom Dropdown Builder
-function buildCustomDropdown(selectId) {
-  const selectEl = document.getElementById(selectId);
-  if (!selectEl) return;
-
-  const container = document.createElement('div');
-  container.className = 'custom-dropdown-container';
-
-  const trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.className = 'custom-dropdown-trigger';
-  trigger.innerHTML = `
-    <span class="trigger-label">${selectEl.options[selectEl.selectedIndex].text}</span>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  `;
-
-  const menu = document.createElement('ul');
-  menu.className = 'custom-dropdown-menu';
-  
-  const options = Array.from(selectEl.options);
-  options.forEach((opt, idx) => {
-    const li = document.createElement('li');
-    li.className = 'custom-dropdown-option' + (opt.selected ? ' selected' : '');
-    li.dataset.value = opt.value;
-    li.innerHTML = `
-      ${opt.text}
-      <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    `;
-    li.addEventListener('click', () => {
-      selectEl.selectedIndex = idx;
-      trigger.querySelector('.trigger-label').textContent = opt.text;
-      menu.querySelectorAll('.custom-dropdown-option').forEach(item => item.classList.remove('selected'));
-      li.classList.add('selected');
-      closeMenu();
-      selectEl.dispatchEvent(new Event('change'));
-    });
-    menu.appendChild(li);
-  });
-
-  const openMenu = (e) => {
-    e.stopPropagation();
-    document.querySelectorAll('.custom-dropdown-menu.open').forEach(m => m.classList.remove('open'));
-    menu.classList.add('open');
-  };
-
-  const closeMenu = () => {
-    menu.classList.remove('open');
-  };
-
-  trigger.addEventListener('click', (e) => {
-    if (menu.classList.contains('open')) closeMenu();
-    else openMenu(e);
-  });
-
-  selectEl.style.display = 'none';
-  selectEl.parentNode.insertBefore(container, selectEl);
-  container.appendChild(selectEl);
-  container.appendChild(trigger);
-  container.appendChild(menu);
-}
-
-buildCustomDropdown('recurrence-select');
-buildCustomDropdown('sheet-recurrence-select');
-buildCustomDropdown('priority-select');
-buildCustomDropdown('sheet-priority-select');
-buildCustomDropdown('category-select');
-buildCustomDropdown('sheet-category-select');
-
-// Global handler for custom dropdowns (closes any open menu when clicking outside or pressing Escape)
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.custom-dropdown-container')) {
-    document.querySelectorAll('.custom-dropdown-menu.open').forEach(menu => menu.classList.remove('open'));
-  }
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.querySelectorAll('.custom-dropdown-menu.open').forEach(menu => menu.classList.remove('open'));
-  }
-});
