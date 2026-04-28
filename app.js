@@ -1400,17 +1400,20 @@ function renderTasks() {
   completedPercentEl.textContent = pct + '%';
   if (progressBarInner) progressBarInner.style.width = pct + '%';
   
-  if (mobileProgPct) {
-    mobileProgPct.textContent = pct + '%';
-  }
   const todayCompleted = tasks.filter(t => t.completed && t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
   const todayTotalCount = tasks.filter(t => t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
+  const todayPct = todayTotalCount > 0 ? Math.round((todayCompleted / todayTotalCount) * 100) : 0;
+
+  if (mobileProgPct) {
+    mobileProgPct.textContent = todayPct + '%';
+  }
+
 
   if (mobileProgCount) {
     mobileProgCount.textContent = `${todayCompleted} of ${todayTotalCount} tasks completed today`;
   }
   if (mobileProgFill) {
-    mobileProgFill.style.width = pct + '%';
+    mobileProgFill.style.width = todayPct + '%';
   }
 }
 

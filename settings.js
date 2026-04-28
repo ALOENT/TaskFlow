@@ -9,6 +9,7 @@ import {
   signOut, googleProvider, signInWithPopup,
   getDoc, setDoc
 } from './firebase-config.js';
+import { sanitize } from './sanitize.js';
 
 // DOM Refs
 const dashboardView   = document.getElementById('dashboard-view');
@@ -213,37 +214,41 @@ function switchTab(tabId) {
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
-  renderTab();
+
+  // Toggle panel visibility
+  const panels = settingsContent.querySelectorAll('.tab-pane');
+  panels.forEach(p => {
+    const isTarget = p.id === `${tabId}-panel`;
+    p.style.display = isTarget ? 'block' : 'none';
+    p.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+  });
 }
 
 function renderTab() {
-  settingsContent.innerHTML = '';
-  const pane = document.createElement('div');
-  pane.className = 'tab-pane';
-  pane.setAttribute('role', 'tabpanel');
-  pane.setAttribute('id', `${activeTab}-panel`);
-  pane.setAttribute('aria-labelledby', `tab-${activeTab}`);
+  // Ensure all panels exist once
+  const tabs = ['profile', 'appearance', 'notifications', 'data', 'account'];
+  
+  if (settingsContent.children.length === 0) {
+    tabs.forEach(t => {
+      const pane = document.createElement('div');
+      pane.className = 'tab-pane';
+      pane.setAttribute('role', 'tabpanel');
+      pane.setAttribute('id', `${t}-panel`);
+      pane.setAttribute('aria-labelledby', `tab-${t}`);
+      pane.style.display = 'none';
 
-  switch (activeTab) {
-    case 'profile':
-      renderProfileTab(pane);
-      break;
-    case 'appearance':
-      renderAppearanceTab(pane);
-      break;
-    case 'notifications':
-      renderNotificationsTab(pane);
-      break;
-    case 'data':
-      renderDataTab(pane);
-      break;
-    case 'account':
-      renderAccountTab(pane);
-      break;
-    default:
-      pane.innerHTML = `<div class="settings-section"><h3>${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3><p>Coming soon...</p></div>`;
+      switch (t) {
+        case 'profile': renderProfileTab(pane); break;
+        case 'appearance': renderAppearanceTab(pane); break;
+        case 'notifications': renderNotificationsTab(pane); break;
+        case 'data': renderDataTab(pane); break;
+        case 'account': renderAccountTab(pane); break;
+      }
+      settingsContent.appendChild(pane);
+    });
   }
-  settingsContent.appendChild(pane);
+
+  switchTab(activeTab);
 }
 
 // ============================================
@@ -1434,10 +1439,10 @@ function showImportModal(importedTasks) {
         chunk.forEach((t, idx) => {
           const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
           const clean = {
-            text: t.title || t.text || 'Imported Task',
+            text: sanitize(t.title || t.text || 'Imported Task'),
             category: t.category || 'other',
             priority: t.priority || 'none',
-            notes: t.notes || '',
+            notes: sanitize(t.notes || ''),
             recurrence: t.recurrence || 'none',
             completed: false,
             notificationId: null,
@@ -1445,7 +1450,12 @@ function showImportModal(importedTasks) {
             createdAt: serverTimestamp(),
             order: now + i + idx
           };
-          if (t.subtasks) clean.subtasks = t.subtasks;
+          if (t.subtasks && Array.isArray(t.subtasks)) {
+            clean.subtasks = t.subtasks.map(st => ({
+              ...st,
+              text: sanitize(st.text || st.content || '')
+            }));
+          }
           batch.set(newRef, clean);
         });
         await batch.commit();
