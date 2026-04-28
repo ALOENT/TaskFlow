@@ -844,9 +844,7 @@ select {
 /* TASK ITEM */
 .task-item{display:flex;align-items:flex-start;flex-wrap:wrap;gap:14px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px 18px;transition: background-color var(--transition-theme), color var(--transition-theme), border-color var(--transition-theme), box-shadow 0.2s ease, transform 0.2s ease;animation:slideIn .28s ease-out;position:relative;box-shadow:var(--shadow-card)}
 .task-item:hover{box-shadow:var(--shadow-card-hover);border-color:var(--color-text-muted);transform:translateY(-1px)}
-.task-item[data-priority="high"]{border-left:4px solid var(--color-danger)}
-.task-item[data-priority="medium"]{border-left:4px solid var(--color-warning)}
-.task-item[data-priority="low"]{border-left:4px solid var(--color-success)}
+
 .task-item.dragging{opacity:0.4;background:var(--color-bg);border:2px dashed var(--color-accent);box-shadow:none;transform:none}
 .task-item.drag-over{border-top:3px solid var(--color-accent)}
 .task-item.completed-item{opacity:.7}
