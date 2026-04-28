@@ -263,7 +263,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .sidebar-user .user-avatar {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   background: var(--color-accent);
   color: #fff;
   display: flex;
@@ -271,6 +271,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   justify-content: center;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .sidebar-user .user-info {
@@ -572,10 +573,11 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .content-area {
@@ -1303,7 +1305,7 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
     flex-shrink: 0;
   }
 
-  .user-avatar.mobile-avatar img {
+  .user-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
