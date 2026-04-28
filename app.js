@@ -411,14 +411,12 @@ async function updateHeaderUI(user) {
 
   // Time-based greeting
   if (greetingTextEl) {
-    greetingTextEl.textContent = `${getTimeGreeting()}, `;
-    let nameSpan = document.getElementById('user-first-name');
-    if (!nameSpan) {
-      nameSpan = document.createElement('span');
-      nameSpan.id = 'user-first-name';
-      greetingTextEl.appendChild(nameSpan);
-    }
+    greetingTextEl.textContent = '';
+    greetingTextEl.appendChild(document.createTextNode(`${getTimeGreeting()}, `));
+    const nameSpan = document.createElement('span');
+    nameSpan.id = 'user-first-name';
     nameSpan.textContent = firstName;
+    greetingTextEl.appendChild(nameSpan);
     greetingTextEl.appendChild(document.createTextNode(' \u{1F44B}'));
   }
   
