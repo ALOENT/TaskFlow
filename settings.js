@@ -64,13 +64,13 @@ function isValidPhotoURL(url) {
   }
 }
 
-function compressImage(file, callback) {
+function compressImage(file, callback, maxWidth = 200, quality = 0.7) {
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 200;
+      const MAX = maxWidth;
       let w = img.width, h = img.height;
       if (w > h) { 
         if (w > MAX) { h *= MAX/w; w = MAX; }
@@ -80,7 +80,7 @@ function compressImage(file, callback) {
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL('image/jpeg', 0.7));
+      callback(canvas.toDataURL('image/jpeg', quality));
     };
     img.src = e.target.result;
   };
@@ -354,25 +354,44 @@ async function handleAvatarUpload(file) {
 
     // Base64 Compression & Save to Firestore
     compressImage(file, async (base64) => {
-      try {
-        await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64 }, { merge: true });
-        await updateProfile(user, { photoURL: base64 });
-        
-        const initials = user.displayName 
-          ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-          : '?';
-        updateAllAvatars(base64, initials);
-        showToast('Profile photo updated successfully!', 'success');
-      } catch (err) {
-        console.error("Avatar save failed:", err);
-        showToast('Failed to save avatar. Please try again.', 'error');
-      } finally {
-        cleanupAvatarUI();
+      console.log('Base64 size:', base64.length);
+      
+      let finalBase64 = base64;
+      
+      // If still too large for Firestore (1MB limit), compress further
+      if (base64.length > 700000) {
+        console.warn('Base64 too large, re-compressing at 150px / 0.5 quality...');
+        compressImage(file, async (smallerBase64) => {
+          console.log('New Base64 size:', smallerBase64.length);
+          await saveAvatarToFirestore(user, smallerBase64);
+        }, 150, 0.5);
+      } else {
+        await saveAvatarToFirestore(user, base64);
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('Avatar upload prep error:', error);
     showToast('An unexpected error occurred.', 'error');
+    cleanupAvatarUI();
+  }
+}
+
+async function saveAvatarToFirestore(user, base64String) {
+  try {
+    await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64String }, { merge: true });
+    await updateProfile(user, { photoURL: base64String });
+    
+    const initials = user.displayName 
+      ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+      : '?';
+    updateAllAvatars(base64String, initials);
+    showToast('Profile photo updated successfully!', 'success');
+  } catch (err) {
+    console.error('Avatar save error:', err);
+    console.error('Error code:', err.code);
+    console.error('Error message:', err.message);
+    showToast('Failed to save avatar. Please try again.', 'error');
+  } finally {
     cleanupAvatarUI();
   }
 }
