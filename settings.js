@@ -1801,6 +1801,12 @@ function showDeleteAccountModal() {
       } catch (err) {
         if (err.code === 'permission-denied' || err.code === 'auth/requires-recent-login') {
           throw err;
+        } else {
+          console.error('Unexpected error during deletion attempt check:', {
+            message: err.message,
+            code: err.code
+          });
+          throw err;
         }
       }
 
