@@ -1,7 +1,6 @@
 import { 
-  auth, db, storage, 
+  auth, db, 
   updateProfile, 
-  ref, uploadBytesResumable, getDownloadURL,
   collection, query, where, onSnapshot, getDocs,
   addDoc, deleteDoc, writeBatch, doc,
   onAuthStateChanged, serverTimestamp,
@@ -126,7 +125,7 @@ export function initSettings() {
     }
 
     if (user) {
-      // 1. Check Firestore for base64 fallback first
+      // Prioritize avatar from Firestore Base64
       const userDocRef = doc(db, 'users', user.uid);
       getDoc(userDocRef).then(docSnap => {
         let finalPhotoURL = user.photoURL;
@@ -134,7 +133,8 @@ export function initSettings() {
           finalPhotoURL = docSnap.data().avatarBase64;
         }
         updateAllAvatars(finalPhotoURL, initials);
-      }).catch(() => {
+      }).catch(err => {
+        console.error("Error loading avatar from Firestore:", err);
         updateAllAvatars(user.photoURL, initials);
       });
 
@@ -343,54 +343,36 @@ async function handleAvatarUpload(file) {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type)) {
       showToast('Invalid file type. Use JPG, PNG, WEBP, or GIF.', 'error');
+      cleanupAvatarUI();
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       showToast('File too large. Max size is 5MB.', 'error');
+      cleanupAvatarUI();
       return;
     }
 
-    const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
-    
-    try {
-      // Attempt Storage Upload
-      await uploadBytesResumable(storageRef, file);
-      const downloadURL = await getDownloadURL(storageRef);
-      await updateProfile(user, { photoURL: downloadURL });
-      
-      const initials = user.displayName 
-        ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-        : '?';
-      updateAllAvatars(downloadURL, initials);
-      showToast('Profile photo updated!', 'success');
-      
-    } catch (storageErr) {
-      console.warn("Storage upload failed (CORS?), falling back to base64...", storageErr);
-      
-      // Fallback: Base64 to Firestore
-      compressImage(file, async (base64) => {
-        try {
-          await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64 }, { merge: true });
-          await updateProfile(user, { photoURL: base64 });
-          
-          const initials = user.displayName 
-            ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-            : '?';
-          updateAllAvatars(base64, initials);
-          showToast('Profile photo updated (fallback)!', 'success');
-        } catch (dbErr) {
-          console.error("Fallback upload failed too:", dbErr);
-          showToast('Upload failed. Please check connection.', 'error');
-        } finally {
-          cleanupAvatarUI();
-        }
-      });
-      return; // Cleanup is handled in callback
-    }
+    // Base64 Compression & Save to Firestore
+    compressImage(file, async (base64) => {
+      try {
+        await setDoc(doc(db, 'users', user.uid), { avatarBase64: base64 }, { merge: true });
+        await updateProfile(user, { photoURL: base64 });
+        
+        const initials = user.displayName 
+          ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
+          : '?';
+        updateAllAvatars(base64, initials);
+        showToast('Profile photo updated successfully!', 'success');
+      } catch (err) {
+        console.error("Avatar save failed:", err);
+        showToast('Failed to save avatar. Please try again.', 'error');
+      } finally {
+        cleanupAvatarUI();
+      }
+    });
   } catch (error) {
     console.error(error);
-    showToast('Upload failed. Please try again.', 'error');
-  } finally {
+    showToast('An unexpected error occurred.', 'error');
     cleanupAvatarUI();
   }
 }

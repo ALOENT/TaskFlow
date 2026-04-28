@@ -19,9 +19,6 @@ import { getFirestore, collection, addDoc,
          getDoc, setDoc,
          serverTimestamp, writeBatch,
          where }                       from 'firebase/firestore';
-import { getStorage, ref, 
-         uploadBytesResumable, 
-         getDownloadURL }              from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyClYYhtsn04OdidKPREmL1BFlBQvdodm_Y",
@@ -36,16 +33,14 @@ const app = initializeApp(firebaseConfig);
 
 const auth         = getAuth(app);
 const db           = getFirestore(app);
-const storage      = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 export {
-  auth, db, storage, googleProvider,
+  auth, db, googleProvider,
   signInWithPopup, signOut, onAuthStateChanged,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile,
   updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
   collection, addDoc, deleteDoc, doc, updateDoc, query, orderBy, onSnapshot, getDocs,
   getDoc, setDoc,
-  serverTimestamp, writeBatch, where,
-  ref, uploadBytesResumable, getDownloadURL
+  serverTimestamp, writeBatch, where
 };
