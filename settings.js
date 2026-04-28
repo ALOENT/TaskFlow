@@ -90,6 +90,26 @@ export function generateInitialsAvatar(name, size) {
   return canvas.toDataURL();
 }
 
+// ============================================
+//  HELPERS
+// ============================================
+function isValidHexColor(color) {
+  return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(color);
+}
+
+function getSafeAvatarUrl(photoURL, displayName, size) {
+  if (!photoURL) return generateInitialsAvatar(displayName, size);
+  try {
+    const url = new URL(photoURL);
+    if (['http:', 'https:'].includes(url.protocol) || photoURL.startsWith('data:image/')) {
+      return photoURL;
+    }
+  } catch (e) {
+    if (photoURL.startsWith('data:image/')) return photoURL;
+  }
+  return generateInitialsAvatar(displayName, size);
+}
+
 export function refreshAllAvatars() {
   const user = auth.currentUser;
   if (!user) return;
@@ -100,16 +120,28 @@ export function refreshAllAvatars() {
   const avatars = document.querySelectorAll('[data-avatar]');
   avatars.forEach(el => {
     const size = parseInt(el.dataset.size) || 40;
-    const url = photoURL || generateInitialsAvatar(displayName, size);
-    el.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    const url = getSafeAvatarUrl(photoURL, displayName, size);
+    el.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    el.appendChild(img);
   });
 
   // Account tab might have its own specific container if it doesn't use data-avatar
   const accountAvatar = document.getElementById('account-avatar-container');
   if (accountAvatar) {
     const size = 64;
-    const url = photoURL || generateInitialsAvatar(displayName, size);
-    accountAvatar.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    const url = getSafeAvatarUrl(photoURL, displayName, size);
+    accountAvatar.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    accountAvatar.appendChild(img);
   }
 }
 
@@ -158,8 +190,12 @@ export function initSettings() {
 export function openSettings() {
   dashboardView.style.display = 'none';
   settingsView.style.display = 'flex';
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('active');
+  
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('active');
+  
   switchTab('profile');
 }
 
@@ -227,8 +263,8 @@ function renderProfileTab(container) {
       <span class="settings-section-title">Public Profile</span>
       
       <div class="profile-header">
-        <div class="profile-avatar-large" id="profile-avatar-display" data-avatar data-size="80">
-          <img src="${finalAvatarURL}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+        <div class="profile-avatar-large" id="profile-avatar-display">
+          <!-- Image injected below -->
         </div>
         <div class="profile-info">
           <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
@@ -236,6 +272,22 @@ function renderProfileTab(container) {
           <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${escapeHtml(createdAt)}</p>
         </div>
       </div>
+
+      <script>
+        (function() {
+          const disp = document.getElementById('profile-avatar-display');
+          if (disp) {
+            const url = "${getSafeAvatarUrl(photoURL, displayName, 80)}";
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = 'Avatar';
+            img.referrerPolicy = 'no-referrer';
+            img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+            disp.innerHTML = '';
+            disp.appendChild(img);
+          }
+        })();
+      </script>
 
       <div class="profile-row">
         <label>Display Name</label>
@@ -591,35 +643,35 @@ function renderAppearanceTab(container) {
   let editingIndex = -1;
 
   const renderCustomSwatches = () => {
-    customSwatchesRow.innerHTML = customColors.map((color, index) => `
-      <button class="color-swatch custom-swatch ${currentAccent === color ? 'active' : ''}" 
-              style="background-color: ${color};" 
-              data-color="${color}" 
-              data-index="${index}"
-              type="button">
-         ${currentAccent === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-      </button>
-    `).join('');
-
-    const swatches = customSwatchesRow.querySelectorAll('.custom-swatch');
-    swatches.forEach(swatch => {
-      const index = parseInt(swatch.dataset.index);
-      const color = swatch.dataset.color;
-
-      swatch.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const currentAccent = localStorage.getItem('accentColor');
+    customSwatchesRow.innerHTML = '';
+    
+    customColors
+      .filter(isValidHexColor)
+      .forEach((color, index) => {
+        const swatch = document.createElement('button');
+        swatch.className = 'color-swatch custom-swatch' + (currentAccent === color ? ' active' : '');
+        swatch.style.backgroundColor = color;
+        swatch.dataset.color = color;
+        swatch.dataset.index = index;
+        swatch.type = 'button';
+        
         if (currentAccent === color) {
-          // If already selected, show options
-          showContextMenu(swatch, index, color);
-        } else {
-          // Otherwise just select
-          applyColor(color);
+          swatch.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
         }
+        
+        swatch.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const current = localStorage.getItem('accentColor');
+          if (current === color) {
+            showContextMenu(swatch, index, color);
+          } else {
+            applyColor(color);
+          }
+        });
+        
+        customSwatchesRow.appendChild(swatch);
       });
-    });
   };
 
   const applyColor = (color) => {
@@ -1001,6 +1053,8 @@ function renderNotificationsTab(container) {
     });
   }
 }
+
+
 
 // ============================================
 //  TAB 4 — DATA
@@ -1710,14 +1764,7 @@ function showDeleteAccountModal() {
       // 1. Mark deletion in progress
       await updateDoc(doc(db, 'users', user.uid), { deletionInProgress: true });
 
-      // 2. Delete Auth Account first (safer approach B)
-      // Note: This requires recent login. If it fails, catch block handles it.
-      await user.delete();
-
-      // 3. Cleanup Firestore data
-      // Since Auth is deleted, we rely on the fact that if this fails, 
-      // the data is orphaned but the user has no account.
-      // Ideally, a Cloud Function handles this onUserDelete.
+      // 2. Cleanup Firestore data first (Safer Approach A)
       const userRef = doc(db, 'users', user.uid);
       
       // Batch delete tasks
@@ -1731,6 +1778,10 @@ function showDeleteAccountModal() {
 
       // Delete user doc
       await deleteDoc(userRef);
+
+      // 3. Delete Auth Account
+      // Note: This requires recent login.
+      await user.delete();
 
       // 4. Final Cleanup
       localStorage.clear();

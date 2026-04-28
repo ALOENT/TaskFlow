@@ -101,9 +101,15 @@ Configured via `capacitor.config.json`:
 ## 8. Environment Variables
 
 Keys used in `.env`:
-- `OPENROUTER_API_KEY`
+- `OPENROUTER_API_KEY`: API key for OpenRouter integrations.
+- `VITE_FIREBASE_API_KEY`: The API key for your Firebase project.
+- `VITE_FIREBASE_AUTH_DOMAIN`: The auth domain for your Firebase project.
+- `VITE_FIREBASE_PROJECT_ID`: The unique ID for your Firebase project.
+- `VITE_FIREBASE_STORAGE_BUCKET`: The Cloud Storage bucket name.
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`: The sender ID for Firebase Cloud Messaging.
+- `VITE_FIREBASE_APP_ID`: The specific App ID for your Firebase Web App.
 
-*(Note: Other configuration values like Firebase API keys are currently hardcoded in `firebase-config.js` rather than strictly relying on `.env` files).*
+*Note: All `VITE_` prefixed variables are automatically injected into the application by Vite during the build process.*
 
 ## 9. Security Measures
 

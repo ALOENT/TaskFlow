@@ -994,13 +994,24 @@ function createTaskElement(task) {
   (task.subtasks || []).forEach(sub => {
     const subItem = document.createElement('div');
     subItem.className = 'subtask-item' + (sub.completed ? ' subtask-completed' : '');
-    subItem.innerHTML = `
-      <input type="checkbox" class="subtask-checkbox" ${sub.completed ? 'checked' : ''}>
-      <span class="subtask-text">${sub.text}</span>
-      <button class="subtask-delete-btn">×</button>
-    `;
-    subItem.querySelector('.subtask-checkbox').addEventListener('change', () => toggleSubtask(task.id, sub.id));
-    subItem.querySelector('.subtask-delete-btn').addEventListener('click', () => deleteSubtask(task.id, sub.id));
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'subtask-checkbox';
+    checkbox.checked = sub.completed;
+    checkbox.addEventListener('change', () => toggleSubtask(task.id, sub.id));
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'subtask-text';
+    textSpan.textContent = sub.text;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'subtask-delete-btn';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', () => deleteSubtask(task.id, sub.id));
+
+    subItem.appendChild(checkbox);
+    subItem.appendChild(textSpan);
+    subItem.appendChild(delBtn);
     subList.appendChild(subItem);
   });
 
@@ -1646,11 +1657,6 @@ function buildCustomDropdown(selectId) {
     else openMenu(e);
   });
 
-  document.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeMenu();
-  });
-
   selectEl.style.display = 'none';
   selectEl.parentNode.insertBefore(container, selectEl);
   container.appendChild(selectEl);
@@ -1665,3 +1671,15 @@ buildCustomDropdown('sheet-priority-select');
 buildCustomDropdown('category-select');
 buildCustomDropdown('sheet-category-select');
 
+// Global handler for custom dropdowns (closes any open menu when clicking outside or pressing Escape)
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-dropdown-container')) {
+    document.querySelectorAll('.custom-dropdown-menu.open').forEach(menu => menu.classList.remove('open'));
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.custom-dropdown-menu.open').forEach(menu => menu.classList.remove('open'));
+  }
+});

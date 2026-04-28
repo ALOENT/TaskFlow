@@ -21,12 +21,12 @@ import { getFirestore, collection, addDoc,
          where }                       from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey:            "AIzaSyClYYhtsn04OdidKPREmL1BFlBQvdodm_Y",
-  authDomain:        "taskflow-35cd4.firebaseapp.com",
-  projectId:         "taskflow-35cd4",
-  storageBucket:     "taskflow-35cd4.firebasestorage.app",
-  messagingSenderId: "106262602008",
-  appId:             "1:106262602008:web:9a17ac4f09a1d066f4fe6d"
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
