@@ -20,9 +20,18 @@ import {
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
 import { sanitize } from './sanitize.js';
-import { initSettings } from './settings.js';
-
-initSettings();
+// Lazy load settings when button clicked
+const settingsBtn = document.getElementById('settings-btn');
+let settingsModule = null;
+if (settingsBtn) {
+  settingsBtn.addEventListener('click', async () => {
+    if (!settingsModule) {
+      settingsModule = await import('./settings.js');
+      settingsModule.initSettings();
+    }
+    settingsModule.openSettings();
+  });
+}
 
 // Prevent glitchy animations during window resize
 let resizeTimer;
@@ -381,7 +390,7 @@ function getTimeGreeting() {
   return 'Good evening';
 }
 
-function updateHeaderUI(user) {
+async function updateHeaderUI(user) {
   const email = user.email || '';
   const displayName = user.displayName || (email ? email.split('@')[0] : 'User');
   const firstName = displayName.split(' ')[0];
@@ -392,26 +401,31 @@ function updateHeaderUI(user) {
 
   // Time-based greeting
   if (greetingTextEl) {
-    greetingTextEl.innerHTML = `${getTimeGreeting()}, <span id="user-first-name">${firstName}</span> \u{1F44B}`;
+    greetingTextEl.textContent = `${getTimeGreeting()}, `;
+    const nameSpan = document.createElement('span');
+    nameSpan.id = 'user-first-name';
+    nameSpan.textContent = firstName;
+    greetingTextEl.appendChild(nameSpan);
+    greetingTextEl.appendChild(document.createTextNode(' \u{1F44B}'));
   }
   
-  const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  
-  const avatarHTML = user.photoURL 
-    ? `<img src="${user.photoURL}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%;height:100%;border-radius:inherit;object-fit:cover;">`
-    : initials;
-
-  if (sideUserAvatar) {
-    if (user.photoURL) sideUserAvatar.innerHTML = avatarHTML;
-    else sideUserAvatar.textContent = initials;
-  }
-  if (topUserAvatar) {
-    if (user.photoURL) topUserAvatar.innerHTML = avatarHTML;
-    else topUserAvatar.textContent = initials;
-  }
-  if (mobileUserAvatar) {
-    if (user.photoURL) mobileUserAvatar.innerHTML = avatarHTML;
-    else mobileUserAvatar.textContent = initials;
+  try {
+    const { generateInitialsAvatar } = await import('./settings.js');
+    const photoURL = user.photoURL;
+    
+    const avatars = document.querySelectorAll('[data-avatar]');
+    avatars.forEach(el => {
+      const size = parseInt(el.dataset.size) || 40;
+      const url = photoURL || generateInitialsAvatar(displayName, size);
+      el.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    });
+  } catch (err) {
+    console.error("Failed to load avatar generator:", err);
+    // Fallback to text initials
+    const initials = displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    if (sideUserAvatar) sideUserAvatar.textContent = initials;
+    if (topUserAvatar) topUserAvatar.textContent = initials;
+    if (mobileUserAvatar) mobileUserAvatar.textContent = initials;
   }
   
   updateCurrentDate();
@@ -700,7 +714,7 @@ async function toggleTask(id) {
 
   try {
     const newCompleted = !task.completed;
-    await updateDoc(taskDoc, { completed: newCompleted });
+    await updateDoc(taskDoc, { completed: newCompleted, completedAt: newCompleted ? serverTimestamp() : null });
 
     // Handle Recurring Task
     if (newCompleted && task.recurrence && task.recurrence !== 'none') {
@@ -887,7 +901,7 @@ async function handleRecurrence(task) {
   const docRef = await addDoc(tasksRef, taskData);
 
   if (nextReminder) {
-    const notifId = await scheduleTaskReminder({ id: docRef.id, title: task.text, reminderTime: nextReminder.toISOString() });
+    const notifId = await scheduleTaskReminder({ id: docRef.id, title: task.text || task.title || 'Untitled', reminderTime: nextReminder.toISOString() });
     if (notifId != null) {
       await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
     }
@@ -926,7 +940,7 @@ function createTaskElement(task) {
   item.innerHTML = `
     <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}>
     <div class="task-content">
-      <div class="task-text">${task.text}</div>
+      <div class="task-text">${task.text || task.title || 'Untitled'}</div>
       <div class="task-meta">
         <span class="task-category-badge">${cat.icon} ${cat.label}</span>
         <span class="task-category-badge priority-${task.priority || 'medium'}">${prioIcon} ${prioLabel}</span>
@@ -980,13 +994,24 @@ function createTaskElement(task) {
   (task.subtasks || []).forEach(sub => {
     const subItem = document.createElement('div');
     subItem.className = 'subtask-item' + (sub.completed ? ' subtask-completed' : '');
-    subItem.innerHTML = `
-      <input type="checkbox" class="subtask-checkbox" ${sub.completed ? 'checked' : ''}>
-      <span class="subtask-text">${sub.text}</span>
-      <button class="subtask-delete-btn">×</button>
-    `;
-    subItem.querySelector('.subtask-checkbox').addEventListener('change', () => toggleSubtask(task.id, sub.id));
-    subItem.querySelector('.subtask-delete-btn').addEventListener('click', () => deleteSubtask(task.id, sub.id));
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'subtask-checkbox';
+    checkbox.checked = sub.completed;
+    checkbox.addEventListener('change', () => toggleSubtask(task.id, sub.id));
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'subtask-text';
+    textSpan.textContent = sub.text;
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'subtask-delete-btn';
+    delBtn.textContent = '×';
+    delBtn.addEventListener('click', () => deleteSubtask(task.id, sub.id));
+
+    subItem.appendChild(checkbox);
+    subItem.appendChild(textSpan);
+    subItem.appendChild(delBtn);
     subList.appendChild(subItem);
   });
 
@@ -1319,7 +1344,8 @@ function renderTasks() {
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(t => 
-      t.text.toLowerCase().includes(q) || 
+      (t.text && t.text.toLowerCase().includes(q)) || 
+      (t.title && t.title.toLowerCase().includes(q)) || 
       (t.subtasks && t.subtasks.some(s => s.text.toLowerCase().includes(q)))
     );
   }
@@ -1374,17 +1400,20 @@ function renderTasks() {
   completedPercentEl.textContent = pct + '%';
   if (progressBarInner) progressBarInner.style.width = pct + '%';
   
-  if (mobileProgPct) {
-    mobileProgPct.textContent = pct + '%';
-  }
   const todayCompleted = tasks.filter(t => t.completed && t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
   const todayTotalCount = tasks.filter(t => t.createdAt && (t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt)).toDateString() === todayStr).length;
+  const todayPct = todayTotalCount > 0 ? Math.round((todayCompleted / todayTotalCount) * 100) : 0;
+
+  if (mobileProgPct) {
+    mobileProgPct.textContent = todayPct + '%';
+  }
+
 
   if (mobileProgCount) {
     mobileProgCount.textContent = `${todayCompleted} of ${todayTotalCount} tasks completed today`;
   }
   if (mobileProgFill) {
-    mobileProgFill.style.width = pct + '%';
+    mobileProgFill.style.width = todayPct + '%';
   }
 }
 
@@ -1568,85 +1597,15 @@ async function addSheetTask() {
   }
 }
 
+// End of file listeners
 if (sheetAddTaskBtn) {
   sheetAddTaskBtn.addEventListener('click', addSheetTask);
 }
 if (sheetTaskInput) {
   sheetTaskInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addSheetTask(); }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSheetTask();
+    }
   });
 }
-
-// Custom Dropdown Builder
-function buildCustomDropdown(selectId) {
-  const selectEl = document.getElementById(selectId);
-  if (!selectEl) return;
-
-  const container = document.createElement('div');
-  container.className = 'custom-dropdown-container';
-
-  const trigger = document.createElement('button');
-  trigger.type = 'button';
-  trigger.className = 'custom-dropdown-trigger';
-  trigger.innerHTML = `
-    <span class="trigger-label">${selectEl.options[selectEl.selectedIndex].text}</span>
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-  `;
-
-  const menu = document.createElement('ul');
-  menu.className = 'custom-dropdown-menu';
-  
-  const options = Array.from(selectEl.options);
-  options.forEach((opt, idx) => {
-    const li = document.createElement('li');
-    li.className = 'custom-dropdown-option' + (opt.selected ? ' selected' : '');
-    li.dataset.value = opt.value;
-    li.innerHTML = `
-      ${opt.text}
-      <svg class="check-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    `;
-    li.addEventListener('click', () => {
-      selectEl.selectedIndex = idx;
-      trigger.querySelector('.trigger-label').textContent = opt.text;
-      menu.querySelectorAll('.custom-dropdown-option').forEach(item => item.classList.remove('selected'));
-      li.classList.add('selected');
-      closeMenu();
-      selectEl.dispatchEvent(new Event('change'));
-    });
-    menu.appendChild(li);
-  });
-
-  const openMenu = (e) => {
-    e.stopPropagation();
-    document.querySelectorAll('.custom-dropdown-menu.open').forEach(m => m.classList.remove('open'));
-    menu.classList.add('open');
-  };
-
-  const closeMenu = () => {
-    menu.classList.remove('open');
-  };
-
-  trigger.addEventListener('click', (e) => {
-    if (menu.classList.contains('open')) closeMenu();
-    else openMenu(e);
-  });
-
-  document.addEventListener('click', closeMenu);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeMenu();
-  });
-
-  selectEl.style.display = 'none';
-  selectEl.parentNode.insertBefore(container, selectEl);
-  container.appendChild(selectEl);
-  container.appendChild(trigger);
-  container.appendChild(menu);
-}
-
-buildCustomDropdown('recurrence-select');
-buildCustomDropdown('sheet-recurrence-select');
-buildCustomDropdown('priority-select');
-buildCustomDropdown('sheet-priority-select');
-buildCustomDropdown('category-select');
-buildCustomDropdown('sheet-category-select');
-

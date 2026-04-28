@@ -1,13 +1,15 @@
 import { 
-  auth, db, storage, 
+  auth, db, 
   updateProfile, 
-  ref, uploadBytesResumable, getDownloadURL,
   collection, query, where, onSnapshot, getDocs,
   addDoc, deleteDoc, writeBatch, doc,
+  updateDoc,
   onAuthStateChanged, serverTimestamp,
   updatePassword, reauthenticateWithCredential, reauthenticateWithPopup, EmailAuthProvider,
-  signOut, googleProvider, signInWithPopup
+  signOut, googleProvider, signInWithPopup,
+  getDoc, setDoc
 } from './firebase-config.js';
+import { sanitize } from './sanitize.js';
 
 // DOM Refs
 const dashboardView   = document.getElementById('dashboard-view');
@@ -52,13 +54,95 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function isValidPhotoURL(url) {
-  if (!url) return false;
+
+
+export function generateInitialsAvatar(name, size) {
+  const s = size || 40;
+  const initials = (name || '?')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(n => n[0].toUpperCase())
+    .slice(0, 2)
+    .join('');
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = s;
+  canvas.height = s;
+  const ctx = canvas.getContext('2d');
+  
+  // Background: accent color
+  const accent = getComputedStyle(document.documentElement)
+    .getPropertyValue('--color-accent')
+    .trim() || '#2563eb';
+  
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(s/2, s/2, s/2, 0, Math.PI*2);
+  ctx.fill();
+  
+  // Text: white initials
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${s * 0.38}px Inter, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(initials, s/2, s/2);
+  
+  return canvas.toDataURL();
+}
+
+// ============================================
+//  HELPERS
+// ============================================
+function isValidHexColor(color) {
+  return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(color);
+}
+
+function getSafeAvatarUrl(photoURL, displayName, size) {
+  if (!photoURL) return generateInitialsAvatar(displayName, size);
   try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    const url = new URL(photoURL);
+    if (['http:', 'https:'].includes(url.protocol) || photoURL.startsWith('data:image/')) {
+      return photoURL;
+    }
   } catch (e) {
-    return false;
+    if (photoURL.startsWith('data:image/')) return photoURL;
+  }
+  return generateInitialsAvatar(displayName, size);
+}
+
+export function refreshAllAvatars() {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+  const photoURL = user.photoURL;
+
+  const avatars = document.querySelectorAll('[data-avatar]');
+  avatars.forEach(el => {
+    const size = parseInt(el.dataset.size) || 40;
+    const url = getSafeAvatarUrl(photoURL, displayName, size);
+    el.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    el.appendChild(img);
+  });
+
+  // Account tab might have its own specific container if it doesn't use data-avatar
+  const accountAvatar = document.getElementById('account-avatar-container');
+  if (accountAvatar) {
+    const size = 64;
+    const url = getSafeAvatarUrl(photoURL, displayName, size);
+    accountAvatar.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    accountAvatar.appendChild(img);
   }
 }
 
@@ -66,7 +150,9 @@ export function initSettings() {
   if (!settingsBtn) return;
 
   settingsBtn.addEventListener('click', openSettings);
-  settingsBackBtn.addEventListener('click', closeSettings);
+  if (settingsBackBtn) {
+    settingsBackBtn.addEventListener('click', closeSettings);
+  }
 
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -82,6 +168,7 @@ export function initSettings() {
     }
 
     if (user) {
+      refreshAllAvatars();
       const q = query(collection(db, 'users', user.uid, 'tasks'));
       unsubscribeTasks = onSnapshot(q, snapshot => {
         tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -101,11 +188,15 @@ export function initSettings() {
   });
 }
 
-function openSettings() {
+export function openSettings() {
   dashboardView.style.display = 'none';
   settingsView.style.display = 'flex';
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('active');
+  
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('active');
+  
   switchTab('profile');
 }
 
@@ -119,36 +210,45 @@ function switchTab(tabId) {
   closeModal('import-modal');
   closeModal('delete-modal');
   tabButtons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tabId);
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
   });
-  renderTab();
+
+  // Toggle panel visibility
+  const panels = settingsContent.querySelectorAll('.tab-pane');
+  panels.forEach(p => {
+    const isTarget = p.id === `${tabId}-panel`;
+    p.style.display = isTarget ? 'block' : 'none';
+    p.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+  });
 }
 
 function renderTab() {
-  settingsContent.innerHTML = '';
-  const pane = document.createElement('div');
-  pane.className = 'tab-pane';
+  // Ensure all panels exist once
+  const tabs = ['profile', 'appearance', 'notifications', 'data', 'account'];
+  
+  if (settingsContent.children.length === 0) {
+    tabs.forEach(t => {
+      const pane = document.createElement('div');
+      pane.className = 'tab-pane';
+      pane.setAttribute('role', 'tabpanel');
+      pane.setAttribute('id', `${t}-panel`);
+      pane.setAttribute('aria-labelledby', `tab-${t}`);
+      pane.style.display = 'none';
 
-  switch (activeTab) {
-    case 'profile':
-      renderProfileTab(pane);
-      break;
-    case 'appearance':
-      renderAppearanceTab(pane);
-      break;
-    case 'notifications':
-      renderNotificationsTab(pane);
-      break;
-    case 'data':
-      renderDataTab(pane);
-      break;
-    case 'account':
-      renderAccountTab(pane);
-      break;
-    default:
-      pane.innerHTML = `<div class="settings-section"><h3>${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h3><p>Coming soon...</p></div>`;
+      switch (t) {
+        case 'profile': renderProfileTab(pane); break;
+        case 'appearance': renderAppearanceTab(pane); break;
+        case 'notifications': renderNotificationsTab(pane); break;
+        case 'data': renderDataTab(pane); break;
+        case 'account': renderAccountTab(pane); break;
+      }
+      settingsContent.appendChild(pane);
+    });
   }
-  settingsContent.appendChild(pane);
+
+  switchTab(activeTab);
 }
 
 // ============================================
@@ -162,32 +262,21 @@ function renderProfileTab(container) {
     ? new Date(user.metadata.creationTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric', day: 'numeric' })
     : 'Unknown';
 
-  const initials = user.displayName 
-    ? user.displayName.trim().split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-    : '?';
-
   const displayName = user.displayName || 'Anonymous';
   const email = user.email || '';
-  const photoURL = user.photoURL || '';
-  const safePhotoURL = isValidPhotoURL(photoURL) ? photoURL : null;
+  const initialsURL = generateInitialsAvatar(displayName, 80);
+  const photoURL = user.photoURL;
+  const finalAvatarURL = photoURL || initialsURL;
 
   container.innerHTML = `
     <div class="settings-section">
       <span class="settings-section-title">Public Profile</span>
       
       <div class="profile-header">
-        <div class="avatar-upload-container">
-          <div class="profile-avatar-large" id="profile-avatar-display">
-            ${safePhotoURL ? `<img src="${escapeHtml(safePhotoURL)}" alt="Avatar">` : escapeHtml(initials)}
-            <div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>
-          </div>
-          <div class="avatar-overlay" id="avatar-upload-trigger" title="Change photo">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </div>
-          <input type="file" id="avatar-input" style="display:none" accept=".jpg,.jpeg,.png,.webp,.gif">
-        </div>
+        <div class="profile-avatar-large" id="profile-avatar-display"></div>
         <div class="profile-info">
           <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
+          <p style="color: var(--color-text-secondary); font-size: 0.875rem;">${escapeHtml(email)}</p>
           <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${escapeHtml(createdAt)}</p>
         </div>
       </div>
@@ -228,15 +317,17 @@ function renderProfileTab(container) {
     </div>
   `;
 
-  // Avatar Upload Logic
-  const avatarTrigger = container.querySelector('#avatar-upload-trigger');
-  const avatarInput   = container.querySelector('#avatar-input');
-
-  avatarTrigger.addEventListener('click', () => avatarInput.click());
-  avatarInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) handleAvatarUpload(file);
-  });
+  // Avatar Rendering
+  const avatarUrl = getSafeAvatarUrl(photoURL, displayName, 80);
+  const avatarDisp = container.querySelector('#profile-avatar-display');
+  if (avatarDisp) {
+    const img = document.createElement('img');
+    img.src = avatarUrl;
+    img.alt = 'Avatar';
+    img.referrerPolicy = 'no-referrer';
+    img.style.cssText = 'width: 100%; height: 100%; border-radius: 50%; object-fit: cover;';
+    avatarDisp.appendChild(img);
+  }
 
   // Name Editing Logic
   const nameInput = container.querySelector('#profile-name-input');
@@ -254,6 +345,7 @@ function renderProfileTab(container) {
     try {
       await updateProfile(user, { displayName: newName });
       document.getElementById('profile-display-name-text').textContent = newName;
+      refreshAllAvatars();
       const sidebarName = document.getElementById('side-user-name');
       if (sidebarName) sidebarName.textContent = newName;
       showToast('Display name updated!', 'success');
@@ -267,67 +359,6 @@ function renderProfileTab(container) {
   });
 
   setTimeout(() => updateProfileStats(true), 600);
-}
-
-async function handleAvatarUpload(file) {
-  const user = auth.currentUser;
-  if (!user) return;
-
-  const inputEl = document.getElementById('avatar-input');
-  if (inputEl) inputEl.disabled = true;
-
-  const displayEl = document.getElementById('profile-avatar-display');
-  if (displayEl) displayEl.classList.add('loading');
-
-  const spinner = document.getElementById('avatar-spinner');
-  if (spinner) spinner.style.display = 'flex';
-
-  try {
-    // Validation
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      showToast('Invalid file type. Use JPG, PNG, WEBP, or GIF.', 'error');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showToast('File too large. Max size is 5MB.', 'error');
-      return;
-    }
-
-    const storageRef = ref(storage, `users/${user.uid}/avatar.jpg`);
-    await uploadBytesResumable(storageRef, file);
-    
-    const downloadURL = await getDownloadURL(storageRef);
-    await updateProfile(user, { photoURL: downloadURL });
-    
-    const escapedURL = escapeHtml(downloadURL);
-    const avatarHTML = `<img src="${escapedURL}" alt="Avatar">`;
-    const profileDisplay = document.getElementById('profile-avatar-display');
-    if (profileDisplay) {
-      profileDisplay.innerHTML = avatarHTML + `<div class="avatar-spinner" id="avatar-spinner" style="display: none;"></div>`;
-    }
-    
-    // Update all global UI avatars
-    const avatarContainers = ['side-user-avatar', 'mobile-user-avatar', 'top-user-avatar'];
-    avatarContainers.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = avatarHTML;
-    });
-
-    showToast('Profile photo updated!', 'success');
-  } catch (error) {
-    console.error(error);
-    showToast('Upload failed. Please try again.', 'error');
-  } finally {
-    const finalAvatar = document.getElementById('profile-avatar-display');
-    if (finalAvatar) finalAvatar.classList.remove('loading');
-
-    const finalSpinner = document.getElementById('avatar-spinner');
-    if (finalSpinner) finalSpinner.style.display = 'none';
-
-    const finalInput = document.getElementById('avatar-input');
-    if (finalInput) finalInput.disabled = false;
-  }
 }
 
 function updateProfileStats(animate = true) {
@@ -375,9 +406,10 @@ function calculateStreak(allTasks) {
   if (!user) return 0;
 
   const completedDates = allTasks
-    .filter(t => t.completed && t.createdAt)
+    .filter(t => t.completed && (t.completedAt || t.createdAt))
     .map(t => {
-      const d = t.createdAt.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
+      const ts = t.completedAt || t.createdAt;
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
       return d.toDateString();
     });
 
@@ -616,35 +648,35 @@ function renderAppearanceTab(container) {
   let editingIndex = -1;
 
   const renderCustomSwatches = () => {
-    customSwatchesRow.innerHTML = customColors.map((color, index) => `
-      <button class="color-swatch custom-swatch ${currentAccent === color ? 'active' : ''}" 
-              style="background-color: ${color};" 
-              data-color="${color}" 
-              data-index="${index}"
-              type="button">
-         ${currentAccent === color ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-      </button>
-    `).join('');
-
-    const swatches = customSwatchesRow.querySelectorAll('.custom-swatch');
-    swatches.forEach(swatch => {
-      const index = parseInt(swatch.dataset.index);
-      const color = swatch.dataset.color;
-
-      swatch.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        const currentAccent = localStorage.getItem('accentColor');
+    customSwatchesRow.innerHTML = '';
+    
+    customColors
+      .filter(isValidHexColor)
+      .forEach((color, index) => {
+        const swatch = document.createElement('button');
+        swatch.className = 'color-swatch custom-swatch' + (currentAccent === color ? ' active' : '');
+        swatch.style.backgroundColor = color;
+        swatch.dataset.color = color;
+        swatch.dataset.index = index;
+        swatch.type = 'button';
+        
         if (currentAccent === color) {
-          // If already selected, show options
-          showContextMenu(swatch, index, color);
-        } else {
-          // Otherwise just select
-          applyColor(color);
+          swatch.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
         }
+        
+        swatch.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const current = localStorage.getItem('accentColor');
+          if (current === color) {
+            showContextMenu(swatch, index, color);
+          } else {
+            applyColor(color);
+          }
+        });
+        
+        customSwatchesRow.appendChild(swatch);
       });
-    });
   };
 
   const applyColor = (color) => {
@@ -658,6 +690,7 @@ function renderAppearanceTab(container) {
       s.classList.toggle('active', isActive);
       s.innerHTML = isActive ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>` : '';
     });
+    refreshAllAvatars();
   };
 
   const showContextMenu = (target, index, color) => {
@@ -705,13 +738,17 @@ function renderAppearanceTab(container) {
     });
 
     menu.querySelector('#remove-color').addEventListener('click', () => {
+      const colorToRemove = color;
       target.style.transition = 'opacity 0.2s, transform 0.2s';
       target.style.opacity = '0';
       target.style.transform = 'scale(0.8)';
       setTimeout(() => {
-        customColors.splice(index, 1);
-        localStorage.setItem('customAccentColors', JSON.stringify(customColors));
-        if (color === localStorage.getItem('accentColor')) {
+        const idx = customColors.indexOf(colorToRemove);
+        if (idx !== -1) {
+          customColors.splice(idx, 1);
+          localStorage.setItem('customAccentColors', JSON.stringify(customColors));
+        }
+        if (colorToRemove === localStorage.getItem('accentColor')) {
           applyColor('#2563eb');
         }
         renderCustomSwatches();
@@ -1016,11 +1053,17 @@ function renderNotificationsTab(container) {
 
   if (requestBtn) {
     requestBtn.addEventListener('click', async () => {
-      const result = await Notification.requestPermission();
-      renderTab(); // Re-render to update badge/button
+      try {
+        await Notification.requestPermission();
+        renderTab(); // Re-render to update badge/button
+      } catch (err) {
+        console.error("Notification permission error:", err);
+      }
     });
   }
 }
+
+
 
 // ============================================
 //  TAB 4 — DATA
@@ -1396,10 +1439,10 @@ function showImportModal(importedTasks) {
         chunk.forEach((t, idx) => {
           const newRef = doc(collection(db, 'users', user.uid, 'tasks'));
           const clean = {
-            text: t.title || t.text || 'Imported Task',
+            text: sanitize(t.title || t.text || 'Imported Task'),
             category: t.category || 'other',
             priority: t.priority || 'none',
-            notes: t.notes || '',
+            notes: sanitize(t.notes || ''),
             recurrence: t.recurrence || 'none',
             completed: false,
             notificationId: null,
@@ -1407,7 +1450,12 @@ function showImportModal(importedTasks) {
             createdAt: serverTimestamp(),
             order: now + i + idx
           };
-          if (t.subtasks) clean.subtasks = t.subtasks;
+          if (t.subtasks && Array.isArray(t.subtasks)) {
+            clean.subtasks = t.subtasks.map(st => ({
+              ...st,
+              text: sanitize(st.text || st.content || '')
+            }));
+          }
           batch.set(newRef, clean);
         });
         await batch.commit();
@@ -1727,10 +1775,23 @@ function showDeleteAccountModal() {
     btn.innerHTML = `<div class="loader-spinner" style="width: 18px; height: 18px; border-width: 2px;"></div>`;
     
     try {
-      // 0. Mark deletion in progress on user doc
+      // 1. First, check if we need re-authentication before deleting data
+      // We do a dummy update to trigger potential auth errors early
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { lastDeletionAttempt: serverTimestamp() });
+      } catch (err) {
+        if (err.code === 'permission-denied' || err.code === 'auth/requires-recent-login') {
+          throw err;
+        }
+      }
+
+      // 2. Mark deletion in progress
       await updateDoc(doc(db, 'users', user.uid), { deletionInProgress: true });
 
-      // 1. Batch delete tasks
+      // 3. Cleanup Firestore data
+      const userRef = doc(db, 'users', user.uid);
+      
+      // Batch delete tasks (500 per batch is Firestore limit)
       for (let i = 0; i < tasks.length; i += 500) {
         const batch = writeBatch(db);
         tasks.slice(i, i + 500).forEach(t => {
@@ -1739,22 +1800,22 @@ function showDeleteAccountModal() {
         await batch.commit();
       }
 
-      // 2. Delete user doc
-      await deleteDoc(doc(db, 'users', user.uid));
+      // Delete user doc
+      await deleteDoc(userRef);
 
-      // 3. Delete Auth Account
+      // 4. Delete Auth Account
       await user.delete();
 
-      // 4. Final Cleanup
+      // 5. Final Cleanup
       localStorage.clear();
       window.location.reload();
     } catch (err) {
-      if (err.code === 'auth/requires-recent-login') {
+      if (err.code === 'auth/requires-recent-login' || err.message?.includes('recent login')) {
         close();
         showReauthModal();
       } else {
         console.error("Critical Deletion Failure:", err);
-        showToast('Failed to delete account. Please try again.', 'error');
+        showToast('Failed to delete account. Please re-authenticate and try again.', 'error');
         btn.disabled = false;
         btn.innerHTML = 'Delete Account';
       }
@@ -1785,7 +1846,10 @@ function showReauthModal() {
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
               Re-authenticate with Google
             </button>`
-          : `<p style="font-size: 14px; text-align: center; color: var(--color-text-muted);">Please log out and sign in again to proceed.</p>`
+          : `<div style="display: flex; flex-direction: column; gap: 12px;">
+              <input type="password" id="reauth-password" placeholder="Confirm your password" style="width: 100%; height: 48px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text-primary); outline: none;">
+              <button id="reauth-email-btn" class="tf-btn-primary" style="width: 100%; height: 48px; border-radius: 12px;">Verify and Proceed</button>
+            </div>`
         }
       </div>
       <div class="tf-modal-footer">
@@ -1816,6 +1880,27 @@ function showReauthModal() {
         console.error("Re-auth failed:", err);
         showToast('Verification failed', 'error');
         googleBtn.disabled = false;
+      }
+    };
+  }
+
+  const emailBtn = modal.querySelector('#reauth-email-btn');
+  const passwordInput = modal.querySelector('#reauth-password');
+  if (emailBtn && passwordInput) {
+    emailBtn.onclick = async () => {
+      const password = passwordInput.value;
+      if (!password) return showToast('Please enter password', 'error');
+      
+      emailBtn.disabled = true;
+      try {
+        const cred = EmailAuthProvider.credential(user.email, password);
+        await reauthenticateWithCredential(user, cred);
+        showToast('Identity verified. You can now delete your account.', 'success');
+        close();
+        showDeleteAccountModal();
+      } catch (err) {
+        showToast('Incorrect password', 'error');
+        emailBtn.disabled = false;
       }
     };
   }

@@ -19,8 +19,9 @@
   --color-warning: #f97316;
   --color-danger-bg: #fef2f2;
   --color-warning-bg: #fff7ed;
-  --color-success-bg: #f0fdf4;
   --color-success-light: #dcfce7;
+  --color-success-bg: #f0fdf4;
+  --base-font-size: 15px;
   
   --color-user-bg: #f4f7fa;
   --color-nav-hover: #eef2f6;
@@ -263,7 +264,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 .sidebar-user .user-avatar {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   background: var(--color-accent);
   color: #fff;
   display: flex;
@@ -271,6 +272,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   justify-content: center;
   font-weight: 700;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .sidebar-user .user-info {
@@ -327,10 +329,22 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   color: var(--color-text-primary);
 }
 
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: var(--color-nav-hover);
+  color: var(--color-text-primary);
+}
+
 .nav-item.active {
   background: var(--color-accent-light);
   color: var(--color-accent);
   box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.nav-item.active:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 [data-theme="dark"] .nav-item.active {
@@ -382,6 +396,12 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   color: var(--color-accent);
 }
 
+.add-cat-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: var(--color-nav-hover);
+}
+
 .cat-badge {
   margin-left: auto;
   background: var(--color-bg);
@@ -428,6 +448,13 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
 
 .footer-btn:hover {
   background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+.footer-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+  background: var(--color-nav-hover);
   color: var(--color-text-primary);
 }
 
@@ -572,10 +599,11 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); }
   color: #fff;
   font-size: 0.75rem;
   font-weight: 700;
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .content-area {
@@ -844,9 +872,7 @@ select {
 /* TASK ITEM */
 .task-item{display:flex;align-items:flex-start;flex-wrap:wrap;gap:14px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px 18px;transition: background-color var(--transition-theme), color var(--transition-theme), border-color var(--transition-theme), box-shadow 0.2s ease, transform 0.2s ease;animation:slideIn .28s ease-out;position:relative;box-shadow:var(--shadow-card)}
 .task-item:hover{box-shadow:var(--shadow-card-hover);border-color:var(--color-text-muted);transform:translateY(-1px)}
-.task-item[data-priority="high"]{border-left:4px solid var(--color-danger)}
-.task-item[data-priority="medium"]{border-left:4px solid var(--color-warning)}
-.task-item[data-priority="low"]{border-left:4px solid var(--color-success)}
+
 .task-item.dragging{opacity:0.4;background:var(--color-bg);border:2px dashed var(--color-accent);box-shadow:none;transform:none}
 .task-item.drag-over{border-top:3px solid var(--color-accent)}
 .task-item.completed-item{opacity:.7}
@@ -1085,6 +1111,16 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   transform: scale(0.9);
 }
 
+.fab-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--color-bg), 0 0 0 8px var(--color-accent);
+  transform: scale(1.05);
+}
+
+.fab-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* BOTTOM SHEET */
 .bottom-sheet-overlay {
   position: fixed;
@@ -1295,7 +1331,7 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
     flex-shrink: 0;
   }
 
-  .user-avatar.mobile-avatar img {
+  .user-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -2488,6 +2524,10 @@ span.flatpickr-weekday { color: var(--color-text-muted) !important; font-weight:
   bottom: 0;
   background-color: var(--color-border);
   transition: .2s;
+}
+
+.switch input:focus-visible + .slider {
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
 }
 
 .slider:before {
