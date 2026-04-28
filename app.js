@@ -411,16 +411,14 @@ async function updateHeaderUI(user) {
   
   try {
     const { generateInitialsAvatar } = await import('./settings.js');
+    const photoURL = user.photoURL;
     
-    if (sideUserAvatar) {
-      sideUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 40)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-    }
-    if (topUserAvatar) {
-      topUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 32)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-    }
-    if (mobileUserAvatar) {
-      mobileUserAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 32)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-    }
+    const avatars = document.querySelectorAll('[data-avatar]');
+    avatars.forEach(el => {
+      const size = parseInt(el.dataset.size) || 40;
+      const url = photoURL || generateInitialsAvatar(displayName, size);
+      el.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    });
   } catch (err) {
     console.error("Failed to load avatar generator:", err);
     // Fallback to text initials

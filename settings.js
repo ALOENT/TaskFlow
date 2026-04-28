@@ -92,28 +92,24 @@ export function generateInitialsAvatar(name, size) {
 
 export function refreshAllAvatars() {
   const user = auth.currentUser;
-  const displayName = user ? (user.displayName || (user.email ? user.email.split('@')[0] : 'User')) : '?';
-  
-  const config = [
-    { id: 'side-user-avatar', size: 40 },
-    { id: 'mobile-user-avatar', size: 32 },
-    { id: 'top-user-avatar', size: 32 },
-    { id: 'profile-avatar-display', size: 80 }
-  ];
+  if (!user) return;
 
-  const dataURL = generateInitialsAvatar(displayName, 80); // Base high-res version or per size
-  
-  config.forEach(item => {
-    const el = document.getElementById(item.id);
-    if (!el) return;
-    const url = (item.size === 80) ? dataURL : generateInitialsAvatar(displayName, item.size);
-    el.innerHTML = `<img src="${url}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+  const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+  const photoURL = user.photoURL;
+
+  const avatars = document.querySelectorAll('[data-avatar]');
+  avatars.forEach(el => {
+    const size = parseInt(el.dataset.size) || 40;
+    const url = photoURL || generateInitialsAvatar(displayName, size);
+    el.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
   });
 
-  // Account tab might have its own
+  // Account tab might have its own specific container if it doesn't use data-avatar
   const accountAvatar = document.getElementById('account-avatar-container');
   if (accountAvatar) {
-    accountAvatar.innerHTML = `<img src="${generateInitialsAvatar(displayName, 64)}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+    const size = 64;
+    const url = photoURL || generateInitialsAvatar(displayName, size);
+    accountAvatar.innerHTML = `<img src="${url}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
   }
 }
 
@@ -223,19 +219,20 @@ function renderProfileTab(container) {
   const displayName = user.displayName || 'Anonymous';
   const email = user.email || '';
   const initialsURL = generateInitialsAvatar(displayName, 80);
+  const photoURL = user.photoURL;
+  const finalAvatarURL = photoURL || initialsURL;
 
   container.innerHTML = `
     <div class="settings-section">
       <span class="settings-section-title">Public Profile</span>
       
       <div class="profile-header">
-        <div class="avatar-upload-container">
-          <div class="profile-avatar-large" id="profile-avatar-display">
-            <img src="${initialsURL}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-          </div>
+        <div class="profile-avatar-large" id="profile-avatar-display" data-avatar data-size="80">
+          <img src="${finalAvatarURL}" alt="Avatar" referrerpolicy="no-referrer" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
         </div>
         <div class="profile-info">
           <h3 id="profile-display-name-text" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;">${escapeHtml(displayName)}</h3>
+          <p style="color: var(--color-text-secondary); font-size: 0.875rem;">${escapeHtml(email)}</p>
           <p style="color: var(--color-text-secondary); font-size: 0.875rem;">Member since ${escapeHtml(createdAt)}</p>
         </div>
       </div>
