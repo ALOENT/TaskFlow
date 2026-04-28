@@ -1439,9 +1439,13 @@ taskInput.addEventListener('keydown', (e) => {
 });
 
 if (topSearchInput) {
+  let searchTimeout;
   topSearchInput.addEventListener('input', (e) => {
-    searchQuery = e.target.value.trim();
-    renderTasks();
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      searchQuery = e.target.value.trim();
+      renderTasks();
+    }, 200);
   });
 }
 
@@ -1589,6 +1593,13 @@ async function addSheetTask() {
         await updateDoc(doc(db, 'users', currentUser.uid, 'tasks', docRef.id), { notificationId: notifId });
       }
     }
+
+    // UI Cleanup
+    sheetTaskInput.value = '';
+    const sheet = document.getElementById('add-task-sheet');
+    if (sheet) sheet.classList.remove('open');
+    const overlay = document.getElementById('sheet-overlay');
+    if (overlay) overlay.classList.remove('active');
   } catch (err) {
     console.error('Error adding sheet task:', err);
     sheetTaskInput.value = text;
