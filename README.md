@@ -177,13 +177,19 @@ Add to `android/app/src/main/AndroidManifest.xml`:
 
 ---
 
-## 🔒 Security
+## 🔒 Architecture & Security
 
-- All user data is isolated per UID in Firestore — no cross-user data access possible
-- All user inputs sanitized with DOMPurify before any database write
-- Strict Content Security Policy prevents unauthorized script execution
-- No third-party trackers, ads, or analytics
-- Auth state continuously monitored — data cleared on sign out
+### Performance & Error Handling
+- **Serverless Architecture:** Entirely powered by Firebase (Auth + Firestore). No custom middleware required; Firebase handles rate-limiting, DDoS protection, and scaling automatically.
+- **Offline-First Caching:** Firestore automatically caches fetched data locally for instant loads and seamless offline support.
+- **Optimized UI:** Implements 200ms debouncing for real-time search and custom throttling for window resize events to prevent layout thrashing.
+- **Robust Error Handling:** Comprehensive `try/catch` wrappers around all network requests, dynamic imports, and sensitive auth flows to prevent silent failures.
+
+### Security Implementation
+- **Data Isolation:** All user data is isolated per UID via strict Firestore Security Rules.
+- **XSS Prevention:** All text inputs are aggressively sanitized with DOMPurify before any database write and DOM injection.
+- **Content Security Policy:** Strict CSP meta tags prevent unauthorized script execution.
+- **No Third-Party Tracking:** Zero analytics or tracking scripts; strict referrer policy enforced.
 
 ---
 

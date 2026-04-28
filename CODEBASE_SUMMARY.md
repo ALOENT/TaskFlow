@@ -110,12 +110,23 @@ Keys used in `.env`:
 
 *Note: All `VITE_` prefixed variables are automatically injected into the application by Vite during the build process.*
 
-## 9. Security Measures
+## 9. Architecture & Performance Optimization
 
-- **Firestore Security Rules:** Access is strictly limited so that a user can only read, write, or delete documents within their own `/users/{userId}/...` path. Unauthenticated access is blocked.
-- **XSS Prevention:** All user-generated text inputs (task titles, notes, subtasks) are sanitized using `DOMPurify` before being saved to the database and before being interpolated into the DOM via `innerHTML`.
+To ensure a highly responsive user experience without the overhead of a custom backend, the following patterns are implemented:
+- **Serverless Architecture:** The application relies entirely on Google Firebase (Auth + Firestore). This eliminates the need for custom middleware, rate-limiting, and API routing, as Firebase automatically handles DDoS protection, infrastructure scaling, and abuse prevention.
+- **Debouncing:** Rapidly firing events, such as typing in the task search filter, are debounced by 200ms. This prevents excessive DOM recalculations and layout thrashing during rapid typing.
+- **Throttling (UI):** High-frequency browser events, like window resizing, are throttled using custom timers to prevent layout recalculation glitches and smooth out CSS transitions.
+- **Data Caching & Offline Support:** Firestore automatically caches fetched documents locally. This provides instant data rendering on subsequent visits and seamless offline support without requiring custom Service Worker caching strategies for API requests.
+- **Robust Error Handling:** Critical operational flows (e.g., dynamic module loading for settings, user account deletion, and Firebase operations) are wrapped in comprehensive `try/catch` blocks to prevent silent crashes and gracefully handle network disconnections.
 
-## 10. Known Limitations
+## 10. Security Measures
+
+- **Authentication:** Custom session management is avoided in favor of Firebase Authentication, which securely manages JWT tokens and OAuth flows (Google & Email/Password).
+- **Backend Validation (Firestore Security Rules):** Access is strictly limited so that a user can only read, write, or delete documents within their own `/users/{userId}/...` path. Unauthenticated access is blocked at the database level.
+- **XSS Prevention:** All user-generated text inputs (task titles, notes, subtasks, JSON imports) are sanitized using `DOMPurify` before being saved to the database and before being interpolated into the DOM via `innerHTML` or `document.createElement`.
+- **API Key Security:** Firebase initialization keys are exposed via Vite's `import.meta.env` and securely bounded by Firestore Rules and Domain Whitelisting, ensuring they cannot be abused even if extracted from the client bundle.
+
+## 11. Known Limitations
 
 - **Recurrence Mechanism:** Task duplication upon completion relies on the client application executing the logic. If the network drops or the app is closed immediately, the recurring task might fail to generate.
 - **Offline Support:** The app relies on Firestore's default offline caching. Advanced conflict resolution or robust offline-first background syncing is not heavily customized.
