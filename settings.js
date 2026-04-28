@@ -125,6 +125,15 @@ export function initSettings() {
     }
 
     if (user) {
+      const name = user.displayName || '';
+      const initials = name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(n => n[0].toUpperCase())
+        .slice(0, 2)
+        .join('') || '?';
+
       // Prioritize avatar from Firestore Base64
       const userDocRef = doc(db, 'users', user.uid);
       getDoc(userDocRef).then(docSnap => {
