@@ -197,7 +197,7 @@ export function openSettings() {
   if (sidebar) sidebar.classList.remove('open');
   if (overlay) overlay.classList.remove('active');
   
-  switchTab('profile');
+  renderTab();
 }
 
 function closeSettings() {
